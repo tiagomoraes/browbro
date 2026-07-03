@@ -1,0 +1,38 @@
+name: BrowBro
+options:
+  bundleIdPrefix: so.aca
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    PRODUCT_BUNDLE_IDENTIFIER: so.aca.browbro
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # Swift 5 language mode keeps the prototype free of strict-concurrency
+    # noise; we can tighten to Swift 6 mode once the slice is proven.
+    SWIFT_VERSION: "5.0"
+    # Local dev only: ad-hoc sign, no team, no notarization (Decision 7).
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_REQUIRED: "NO"
+    CODE_SIGNING_ALLOWED: "YES"
+    ENABLE_HARDENED_RUNTIME: "NO"
+targets:
+  BrowBro:
+    type: application
+    platform: macOS
+    sources:
+      - Sources
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "NO"
+        INFOPLIST_FILE: Resources/Info.plist
+        PRODUCT_NAME: BrowBro
+        COMBINE_HIDPI_IMAGES: "YES"
+schemes:
+  BrowBro:
+    build:
+      targets:
+        BrowBro: all
+    run:
+      config: Debug
