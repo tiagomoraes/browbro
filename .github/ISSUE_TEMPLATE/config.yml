@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/tiagomoraes/browbro/security/advisories/new
+    about: Please report security vulnerabilities privately, not as a public issue.
+  - name: Ask a question / discuss an idea
+    url: https://github.com/tiagomoraes/browbro/discussions
+    about: For open-ended questions or discussion, use GitHub Discussions instead of an issue.
