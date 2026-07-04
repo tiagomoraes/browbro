@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!--
+    Minimal hardened-runtime entitlements for notarization. BrowBro receives
+    kAEGetURL Apple Events and launches browsers via LaunchServices; neither
+    needs a special entitlement. Add keys here only if a future feature does
+    (e.g. com.apple.security.automation.apple-events to script another app).
+  -->
+</dict>
+</plist>
