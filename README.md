@@ -3,7 +3,7 @@ BowBro is a macos application that let's the user select the browser they want t
 
 ## Website
 
-The marketing site lives in [`site/`](site/) — a self-contained static site (no build
+The marketing site lives in [`site/`](site/): a self-contained static site (no build
 step) that mirrors the app's design system. It's published to GitHub Pages at
 **[browbro.tiagomoraes.cloud](https://browbro.tiagomoraes.cloud)** by the
 [`deploy-pages`](.github/workflows/deploy-pages.yml) workflow on every push to `develop`
@@ -12,7 +12,7 @@ the printed URL.
 
 ## Contributing
 
-Contributions are welcome! Active development happens on the `develop` branch — `main` is
+Contributions are welcome! Active development happens on the `develop` branch. `main` is
 reserved for tagged releases. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for the branching
 model, naming conventions, and release process, and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 before opening an issue or pull request.

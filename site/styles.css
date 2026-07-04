@@ -1,5 +1,5 @@
 /* =============================================================================
-   BrowBro — website styles
+   BrowBro: website styles
    Ported from the BrowBro Design System (Claude Design project). Tokens are
    copied verbatim from the design system so the site is pixel-faithful to the
    prototype; component + layout styles reproduce the .dc.html surfaces in
@@ -7,7 +7,7 @@
    ============================================================================= */
 
 /* =============================================================================
-   TOKENS — colors
+   TOKENS: colors
    ============================================================================= */
 :root {
   --accent:            #2c6bed;
@@ -56,7 +56,7 @@
 
   color-scheme: light;
 
-  /* Chrome profile colors — external content, only ever inside a swatch. */
+  /* Chrome profile colors: external content, only ever inside a swatch. */
   --chrome-blue:    #4285f4;
   --chrome-cyan:    #12b5cb;
   --chrome-green:   #1e8e3e;
@@ -117,7 +117,7 @@
 }
 
 /* =============================================================================
-   TOKENS — typography
+   TOKENS: typography
    ============================================================================= */
 :root {
   --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, system-ui,
@@ -160,7 +160,7 @@
 }
 
 /* =============================================================================
-   TOKENS — spacing
+   TOKENS: spacing
    ============================================================================= */
 :root {
   --space-0:  0px;
@@ -186,7 +186,7 @@
 }
 
 /* =============================================================================
-   TOKENS — shape, elevation, blur, motion
+   TOKENS: shape, elevation, blur, motion
    ============================================================================= */
 :root {
   --radius-xs:   4px;
@@ -321,7 +321,7 @@ html[data-theme="dark"] .bb-scene {
 .kbd-hint { font-family: var(--font-mono); color: var(--text-primary); }
 
 /* =============================================================================
-   BRAND — Logomark / Wordmark / MenuBarIcon
+   BRAND: Logomark / Wordmark / MenuBarIcon
    ============================================================================= */
 .wordmark {
   display: inline-flex; align-items: center;
