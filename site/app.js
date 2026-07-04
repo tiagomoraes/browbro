@@ -134,7 +134,7 @@
     if (!btn || !label) return;
     var t;
     btn.addEventListener('click', function () {
-      var cmd = 'brew install --cask browbro';
+      var cmd = 'brew install --cask tiagomoraes/browbro/browbro';
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(cmd).catch(function () {});
       } else {

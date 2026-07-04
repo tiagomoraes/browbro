@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:660px; height:460px; overflow:hidden; }
+  .bg { position:relative; width:660px; height:460px; font-family:"Plus Jakarta Sans",sans-serif;
+        background: radial-gradient(120% 120% at 18% 0%, #dbe6ff 0%, #eaf0fb 44%, #f4f6fb 100%); }
+  .brand { position:absolute; top:34px; left:0; right:0; display:flex; flex-direction:column; align-items:center; gap:11px; }
+  .wm { display:inline-flex; align-items:center; gap:9px; font-weight:800; font-size:24px; letter-spacing:-.02em; color:#1d1d1f; }
+  .instr { font-size:15px; font-weight:500; color:#6e6e73; }
+  .instr b { color:#1d1d1f; font-weight:700; }
+  /* arrow sits between the two icon slots (icons + labels are drawn by Finder) */
+  .arrow { position:absolute; left:262px; top:200px; }
+  .footer { position:absolute; bottom:24px; left:0; right:0; text-align:center; font-family:"JetBrains Mono",monospace; font-size:12px; color:#9a9aa0; }
+</style>
+</head>
+<body>
+  <div class="bg">
+    <div class="brand">
+      <span class="wm">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M3.5 13 C 5 8, 9 8, 10.6 11 C 11.3 12.3, 12.7 12.3, 13.4 11 C 15 8, 19 8, 20.5 13" stroke="#2c6bed" stroke-width="3.4" stroke-linecap="round"/><circle cx="7.3" cy="16.8" r="1.75" fill="#2c6bed"/><circle cx="16.7" cy="16.8" r="1.75" fill="#2c6bed"/></svg>
+        BrowBro
+      </span>
+      <span class="instr">To install, drag <b>BrowBro</b> onto the <b>Applications</b> folder.</span>
+    </div>
+
+    <div class="arrow">
+      <svg width="136" height="40" viewBox="0 0 136 40" fill="none" style="filter:drop-shadow(0 2px 5px rgba(44,107,237,.35))">
+        <path d="M6 20 H118" stroke="#2c6bed" stroke-width="6" stroke-linecap="round"/>
+        <path d="M104 8 L128 20 L104 32" stroke="#2c6bed" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
+
+    <div class="footer">browbro.tiagomoraes.cloud</div>
+  </div>
+</body>
+</html>
