@@ -1,6 +1,15 @@
 # browbro
 BowBro is a macos application that let's the user select the browser they want to use to open a link from the web.
 
+## Website
+
+The marketing site lives in [`site/`](site/) — a self-contained static site (no build
+step) that mirrors the app's design system. It's published to GitHub Pages at
+**[browbro.tiagomoraes.cloud](https://browbro.tiagomoraes.cloud)** by the
+[`deploy-pages`](.github/workflows/deploy-pages.yml) workflow on every push to `develop`
+that touches `site/`. To preview locally: `cd site && python3 -m http.server` then open
+the printed URL.
+
 ## Contributing
 
 Contributions are welcome! Active development happens on the `develop` branch — `main` is
