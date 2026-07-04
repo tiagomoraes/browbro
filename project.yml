@@ -7,7 +7,7 @@ options:
 settings:
   base:
     PRODUCT_BUNDLE_IDENTIFIER: so.aca.browbro
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "0.1.1"
     CURRENT_PROJECT_VERSION: "1"
     # Swift 5 language mode keeps the prototype free of strict-concurrency
     # noise; we can tighten to Swift 6 mode once the slice is proven.
