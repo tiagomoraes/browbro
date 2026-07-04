@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-04
+
+### Changed
+
+- Styled the DMG installer window: a branded background with the BrowBro wordmark and a
+  drag-BrowBro-onto-Applications arrow, replacing the bare Finder window. Retina background,
+  reproducible via `packaging/dmg/`. The app itself is unchanged from 0.1.0.
+
 ## [0.1.0] - 2026-07-04
 
 First public preview. Universal (Apple Silicon + Intel) build, code-signed but not
@@ -31,5 +39,6 @@ yet notarized, so the first launch needs a manual "Open Anyway" (see the release
 - Marketing website (static, in `site/`) published to GitHub Pages at browbro.tiagomoraes.cloud.
 - Project scaffolding: Gitflow branching model, contribution guidelines, issue/PR templates.
 
-[Unreleased]: https://github.com/tiagomoraes/browbro/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/tiagomoraes/browbro/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/tiagomoraes/browbro/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/tiagomoraes/browbro/releases/tag/v0.1.0
