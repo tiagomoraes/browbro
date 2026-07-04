@@ -126,6 +126,51 @@
   })();
 
   /* =========================================================================
+     MOBILE NAV MENU
+  ========================================================================= */
+  (function () {
+    var toggle = document.getElementById('nav-toggle');
+    var menu = document.getElementById('nav-menu');
+    if (!toggle || !menu) return;
+
+    function isOpen() { return menu.classList.contains('is-open'); }
+    function setOpen(open) {
+      menu.classList.toggle('is-open', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    }
+    function close() { setOpen(false); }
+
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setOpen(!isOpen());
+    });
+
+    // Any link tap closes the menu (all links are same-page anchors or GitHub).
+    menu.addEventListener('click', function (e) {
+      if (e.target.closest('a')) close();
+    });
+
+    // Tap outside the menu (and not on the toggle) dismisses it.
+    document.addEventListener('click', function (e) {
+      if (!isOpen()) return;
+      if (menu.contains(e.target) || toggle.contains(e.target)) return;
+      close();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isOpen()) { close(); toggle.focus(); }
+    });
+
+    // Leaving the mobile breakpoint should never strand an open overlay.
+    var wide = window.matchMedia('(min-width: 901px)');
+    (wide.addEventListener ? wide.addEventListener.bind(wide, 'change')
+                           : wide.addListener.bind(wide))(function () {
+      if (wide.matches) close();
+    });
+  })();
+
+  /* =========================================================================
      BREW COPY
   ========================================================================= */
   (function () {
