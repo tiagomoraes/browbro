@@ -300,6 +300,9 @@ html[data-theme="dark"] .bb-scene {
 .bb-wrap { max-width: 1120px; margin: 0 auto; }
 .bb-pad  { padding-left: 28px; padding-right: 28px; }
 
+/* Offset in-page anchors so the sticky 60px nav never covers a section head. */
+section[id], #top { scroll-margin-top: 76px; }
+
 .eyebrow {
   font: var(--weight-semibold) var(--text-sm)/1 var(--font-sans);
   letter-spacing: 0.06em;
@@ -789,8 +792,58 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
 /* =============================================================================
    RESPONSIVE
    ============================================================================= */
+/* Grid/flex children default to min-width:auto, which refuses to shrink below
+   their content's min-content size and blows out the layout on narrow screens.
+   Letting these tracks/items shrink is what keeps the page free of sideways
+   scroll on mobile. */
+.hero > *,
+.grid-2 > *,
+.grid-3 > *,
+.oss > *,
+.footer__top > *,
+.hero__actions > * { min-width: 0; }
+.btn-brew { min-width: 0; }
+
+/* =============================================================================
+   MOBILE NAV MENU
+   ============================================================================= */
+.nav-burger { display: none; }
+.nav-menu   { display: none; }
+.nav-burger .icon-close { display: none; }
+.nav-burger[aria-expanded="true"] .icon-burger { display: none; }
+.nav-burger[aria-expanded="true"] .icon-close  { display: inline; }
+
 @media (max-width: 900px) {
   .nav__links { display: none; }
+  .nav-burger { display: inline-flex; }
+  .nav-menu {
+    display: block; position: fixed; left: 0; right: 0; top: 60px; z-index: 49;
+    padding: 6px 20px 14px;
+    background: var(--surface-menu);
+    -webkit-backdrop-filter: var(--blur-menu); backdrop-filter: var(--blur-menu);
+    box-shadow: inset 0 -0.5px 0 var(--separator), var(--shadow-md);
+    max-height: calc(100dvh - 60px); overflow-y: auto;
+    opacity: 0; visibility: hidden; transform: translateY(-8px);
+    transition: opacity var(--dur-panel) var(--ease-out),
+                transform var(--dur-panel) var(--ease-out),
+                visibility 0s linear var(--dur-panel);
+  }
+  .nav-menu.is-open {
+    opacity: 1; visibility: visible; transform: none;
+    transition: opacity var(--dur-panel) var(--ease-out),
+                transform var(--dur-panel) var(--ease-out);
+  }
+  .nav-menu a {
+    display: block; padding: 13px 4px; text-decoration: none;
+    color: var(--text-primary);
+    font: var(--weight-medium) var(--text-lg)/1 var(--font-sans);
+    box-shadow: inset 0 -0.5px 0 var(--separator);
+  }
+  .nav-menu a:last-child { box-shadow: none; }
+  .nav-menu a:active { color: var(--accent); }
+}
+
+@media (max-width: 900px) {
   .hero { grid-template-columns: 1fr; padding-top: 40px; gap: 36px; }
   .grid-3 { grid-template-columns: 1fr; }
   .grid-2 { grid-template-columns: 1fr; }
@@ -798,6 +851,21 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
   .bb-pad { padding-left: 20px; padding-right: 20px; }
 }
 @media (max-width: 600px) {
+  /* Compact nav so the wordmark, theme, CTA and burger fit down to 320px. */
+  .nav__inner { padding: 0 14px; gap: 8px; }
+  .nav__right { gap: 4px; }
+  .nav__right .btn-accent { padding: 0 12px; }
+  .wordmark { font-size: 20px; }
+
+  /* ID-scoped section padding wins over .bb-pad; bring it down to match. */
+  #how, #demo, #customize, #github, #faq { padding-left: 20px; padding-right: 20px; }
+
+  .hero { padding-left: 20px; padding-right: 20px; }
+  .hero__scene { min-height: 300px; padding: 16px; }
+  .hero__actions { flex-direction: column; align-items: stretch; gap: 12px; }
+  .hero__actions .btn-accent--lg { justify-content: center; }
+  .btn-brew { width: 100%; }
+
   .bb-demo-body { padding: 16px; }
   .bb-demo-anchor { left: 12px; right: 12px; top: 82px; }
   .bb-demo-anchor > .demo-pop { width: auto; }
