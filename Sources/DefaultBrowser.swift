@@ -44,4 +44,28 @@ enum DefaultBrowser {
         try await NSWorkspace.shared.setDefaultApplication(at: me, toOpenURLsWithScheme: "https")
         try await NSWorkspace.shared.setDefaultApplication(at: me, toOpenURLsWithScheme: "http")
     }
+
+    /// The reversible half of the takeover: hand the default back to whatever
+    /// browser held it before BrowBro. The capture is kept so the status can
+    /// still name it.
+    static func restorePriorDefault() async throws {
+        guard
+            let id = capturedPriorDefault,
+            let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id)
+        else { return }
+        try await NSWorkspace.shared.setDefaultApplication(at: appURL, toOpenURLsWithScheme: "https")
+        try await NSWorkspace.shared.setDefaultApplication(at: appURL, toOpenURLsWithScheme: "http")
+    }
+
+    /// Display name + icon for the captured prior default (for onboarding and
+    /// the restore row).
+    static func priorDefaultApp() -> (name: String, appURL: URL)? {
+        guard
+            let id = capturedPriorDefault,
+            let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id)
+        else { return nil }
+        let name = FileManager.default.displayName(atPath: appURL.path)
+            .replacingOccurrences(of: ".app", with: "")
+        return (name, appURL)
+    }
 }

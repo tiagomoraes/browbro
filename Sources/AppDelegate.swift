@@ -22,17 +22,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Guided first run: transparent, reversible default-browser takeover.
+        if !Preferences.hasCompletedOnboarding {
+            OnboardingController.shared.show()
+        }
+        // Dev affordance: open a surface at launch for quick visual checks,
+        // e.g. `BROWBRO_SHOW=settings ./BrowBro`.
+        switch ProcessInfo.processInfo.environment["BROWBRO_SHOW"] {
+        case "settings": SettingsWindowController.shared.show()
+        case "onboarding": OnboardingController.shared.show()
+        default: break
+        }
+    }
+
+    // A clicked link activates us via LaunchServices, which can arrive with a
+    // reopen event. Never let AppKit/SwiftUI respond by conjuring a window —
+    // the picker is the only thing a link should summon.
+    func applicationShouldHandleReopen(_ sender: NSApplication,
+                                       hasVisibleWindows flag: Bool) -> Bool {
+        false
+    }
+
     @objc func handleGetURLEvent(_ event: NSAppleEventDescriptor,
                                  withReplyEvent reply: NSAppleEventDescriptor) {
         guard
             let string = event.paramDescriptor(forKeyword: kGetURLDirectObject)?.stringValue,
             let url = URL(string: string)
         else { return }
-        LinkStore.shared.receive(url)
+        handle(url)
     }
 
     // Belt-and-suspenders: the modern URL-delivery path.
     func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls { LinkStore.shared.receive(url) }
+        for url in urls { handle(url) }
+    }
+
+    private func handle(_ url: URL) {
+        LinkStore.shared.receive(url)
+        // Best-effort source attribution: we're a background accessory, so the
+        // frontmost app when the link arrives is almost always its sender.
+        PickerController.shared.present(for: url, source: currentSourceApp())
+    }
+
+    private func currentSourceApp() -> SourceApp? {
+        guard
+            let app = NSWorkspace.shared.frontmostApplication,
+            app.bundleIdentifier != Bundle.main.bundleIdentifier,
+            let name = app.localizedName
+        else { return nil }
+        return SourceApp(name: name, icon: app.icon)
     }
 }

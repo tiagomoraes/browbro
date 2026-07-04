@@ -8,29 +8,35 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 APP="build/Build/Products/Debug/BrowBro.app"
+INSTALLED="/Applications/BrowBro.app"
 
 echo "▶ Generating Xcode project (xcodegen)…"
 xcodegen generate
 
 echo "▶ Building…"
+# Signing identity/team come from project.yml (Apple Development, required for TCC).
 xcodebuild \
   -project BrowBro.xcodeproj \
   -scheme BrowBro \
   -configuration Debug \
   -derivedDataPath build \
-  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=YES \
   -quiet
+
+echo "▶ Installing to /Applications (stable location for TCC & LaunchServices)…"
+pkill -x BrowBro 2>/dev/null || true
+ditto "$APP" "$INSTALLED"
 
 echo "▶ Registering with LaunchServices…"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
-"$LSREGISTER" -f "$APP"
+"$LSREGISTER" -u "$APP" 2>/dev/null || true   # unregister the build-folder copy
+"$LSREGISTER" -f "$INSTALLED"
 
 echo "▶ Launching BrowBro…"
-open "$APP"
+open "$INSTALLED"
 
 cat <<'EOF'
 
-✅ BrowBro is running (look for the ↗ icon in the menu bar).
+✅ BrowBro is running (look for the unibrow mark in the menu bar).
 
 Prove link reception WITHOUT changing your default browser:
     open -a BrowBro "https://example.com/it-works"
