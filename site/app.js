@@ -1,5 +1,5 @@
 /* =============================================================================
-   BrowBro website — interactivity
+   BrowBro website: interactivity
    A faithful vanilla-JS port of the prototype's DCLogic: theme toggle, brew
    copy, the live cursor picker (autoplay + keyboard nav + launch choreography),
    the FAQ accordion, and the Settings toggles + drag-to-reorder.
@@ -88,7 +88,7 @@
   }
 
   /* -------------------------------------------------------------------------
-     Data — dummy browsers + Chrome profiles (not the user's real ones)
+     Data: dummy browsers + Chrome profiles (not the user's real ones)
   ------------------------------------------------------------------------- */
   var TARGETS = [
     { name: 'Personal', key: '1', profile: true, color: '#7c5cff', detail: 'alex@gmail.com' },
@@ -151,7 +151,7 @@
   })();
 
   /* =========================================================================
-     HERO — static decorative picker rows (Personal preselected)
+     HERO: static decorative picker rows (Personal preselected)
   ========================================================================= */
   (function () {
     var host = document.getElementById('hero-rows');
@@ -162,7 +162,7 @@
   })();
 
   /* =========================================================================
-     LIVE DEMO — cursor picker with autoplay, keyboard nav, launch bloom
+     LIVE DEMO: cursor picker with autoplay, keyboard nav, launch bloom
   ========================================================================= */
   (function () {
     var stage = document.getElementById('demo-stage');
@@ -371,7 +371,7 @@
   })();
 
   /* =========================================================================
-     CUSTOMIZE — Settings toggles + drag reorder
+     CUSTOMIZE: Settings toggles + drag reorder
   ========================================================================= */
   (function () {
     var list = document.getElementById('settings-list');
@@ -441,7 +441,7 @@
   })();
 
   /* =========================================================================
-     FAQ accordion — one open at a time
+     FAQ accordion: one open at a time
   ========================================================================= */
   (function () {
     var listEl = document.getElementById('faq-list');
