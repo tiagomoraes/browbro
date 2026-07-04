@@ -36,4 +36,14 @@ enum BrowserLauncher {
             return false
         }
     }
+
+    /// Launch a resolved target (browser app or Chrome profile) with a URL.
+    static func launch(_ target: LaunchTarget, url: URL) {
+        switch target.kind {
+        case .browser:
+            open(url, withAppAt: target.appURL)
+        case .chromeProfile(let directory):
+            openInChrome(url, profileDirectory: directory, chromeAppURL: target.appURL)
+        }
+    }
 }

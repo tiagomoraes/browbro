@@ -23,6 +23,11 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 
+	<!-- App icon: white unibrow mark on a BrowBro-blue squircle
+	     (regenerate via scripts/generate-appicon.swift). -->
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+
 	<!-- Menu-bar-only accessory app: no Dock icon, no main window (Decision: LSUIElement). -->
 	<key>LSUIElement</key>
 	<true/>
