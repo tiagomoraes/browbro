@@ -1,0 +1,51 @@
+name: PR lint
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  pr-title:
+    name: PR Title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            chore
+            docs
+            refactor
+            test
+            perf
+            ci
+            build
+            style
+            revert
+
+  branch-name:
+    name: Branch Name
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch prefix
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          if [[ "$BASE_REF" == "main" && "$HEAD_REF" =~ ^hotfix/ ]]; then
+            echo "OK: hotfix branch targeting main"
+            exit 0
+          fi
+          if [[ "$HEAD_REF" =~ ^(feat|fix|chore|docs|refactor|test|perf|ci|build|style|release)/ ]]; then
+            echo "OK: $HEAD_REF"
+            exit 0
+          fi
+          echo "Branch '$HEAD_REF' doesn't match an allowed prefix (feat/, fix/, chore/, docs/, refactor/, test/, perf/, ci/, build/, style/, release/, hotfix/)."
+          echo "See CONTRIBUTING.md for the naming convention."
+          exit 1

@@ -1,0 +1,47 @@
+name: BrowBro
+options:
+  bundleIdPrefix: so.aca
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    PRODUCT_BUNDLE_IDENTIFIER: so.aca.browbro
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # Swift 5 language mode keeps the prototype free of strict-concurrency
+    # noise; we can tighten to Swift 6 mode once the slice is proven.
+    SWIFT_VERSION: "5.0"
+    # Local dev signing with the free "Apple Development" identity (from being
+    # signed into Xcode with an Apple ID). A valid, stable signature is required
+    # for macOS TCC to grant/persist access to Chrome's profile data; ad-hoc
+    # builds are refused by policy. Notarization remains deferred (Decision 7).
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Apple Development"
+    DEVELOPMENT_TEAM: "QD5A8CZK76"
+    CODE_SIGNING_REQUIRED: "YES"
+    CODE_SIGNING_ALLOWED: "YES"
+    # Don't inject get-task-allow in Debug: it weakens the app's TCC standing.
+    CODE_SIGN_INJECT_BASE_ENTITLEMENTS: "NO"
+    ENABLE_HARDENED_RUNTIME: "NO"
+targets:
+  BrowBro:
+    type: application
+    platform: macOS
+    sources:
+      - Sources
+      - path: Resources/AppIcon.icns
+        buildPhase: resources
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "NO"
+        INFOPLIST_FILE: Resources/Info.plist
+        PRODUCT_NAME: BrowBro
+        COMBINE_HIDPI_IMAGES: "YES"
+schemes:
+  BrowBro:
+    build:
+      targets:
+        BrowBro: all
+    run:
+      config: Debug
