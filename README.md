@@ -1,6 +1,23 @@
 # browbro
 BowBro is a macos application that let's the user select the browser they want to use to open a link from the web.
 
+## Install
+
+Requires macOS 14 (Sonoma) or later.
+
+**Homebrew:**
+
+```sh
+brew install --cask tiagomoraes/browbro/browbro
+```
+
+**Or download the DMG** from the [latest release](https://github.com/tiagomoraes/browbro/releases/latest)
+and drag BrowBro into Applications.
+
+BrowBro is not yet notarized, so macOS blocks it on first launch. To open it: go to
+**System Settings > Privacy & Security** and click **Open Anyway** (or run
+`xattr -dr com.apple.quarantine "/Applications/BrowBro.app"`).
+
 ## Website
 
 The marketing site lives in [`site/`](site/): a self-contained static site (no build
