@@ -9,7 +9,7 @@ appname = os.path.basename(application)
 format = "UDZO"                       # compressed, read-only
 files = [application]
 symlinks = {"Applications": "/Applications"}
-badge_icon = os.path.join(application, "Contents/Resources/AppIcon.icns")
+icon = os.path.join(application, "Contents/Resources/AppIcon.icns")
 background = os.environ["BB_BACKGROUND"]
 
 icon_size = 128
