@@ -71,7 +71,11 @@ final class PickerController {
 
         let panel = PickerPanel(
             contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.borderless],
+            // Non-activating: the panel takes key focus for the keyboard model
+            // without activating the app — activation would raise every other
+            // BrowBro window (a background Settings window) above the picker,
+            // and would steal active status from the link's source app.
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
@@ -86,7 +90,6 @@ final class PickerController {
         position(panel, size: size)
         self.panel = panel
 
-        NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
 
         // Click-away / focus-away dismissal: losing key status (click in another

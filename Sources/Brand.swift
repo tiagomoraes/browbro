@@ -89,6 +89,15 @@ struct AppIconView: View {
     }
 }
 
+// MARK: - Canonical project links
+
+enum BBLinks {
+    static let repo = URL(string: "https://github.com/tiagomoraes/browbro")!
+    static let sponsors = URL(string: "https://github.com/sponsors/tiagomoraes")!
+    static let kofi = URL(string: "https://ko-fi.com/tiagomoraes")!
+    static let supportPage = URL(string: "https://browbro.tiagomoraes.cloud/#support")!
+}
+
 // MARK: - Menu-bar status item glyph
 
 enum BBBrand {

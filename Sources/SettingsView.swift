@@ -28,6 +28,7 @@ struct SettingsView: View {
                     }
                     catalogGroup
                     behaviorGroup
+                    supportGroup
                 }
                 .padding(BB.padPanel)
             }
@@ -197,6 +198,89 @@ struct SettingsView: View {
                 })
         }
     }
+    // MARK: Support
+
+    /// The ask, kept quiet and last: three link rows, System-Settings style.
+    /// The free option is a first-class row on purpose — no tiers, no minimums.
+    private var supportGroup: some View {
+        SettingsGroup(title: "Support the project", hint: "any amount helps") {
+            SupportLinkRow(
+                symbol: "heart.fill",
+                tile: Color(red: 0xDB / 255, green: 0x61 / 255, blue: 0xA2 / 255),
+                label: "Sponsor on GitHub",
+                description: "One-time or monthly — you pick the amount.",
+                url: BBLinks.sponsors)
+            BBDivider().padding(.leading, 12)
+            SupportLinkRow(
+                symbol: "cup.and.saucer.fill",
+                tile: Color(red: 0xE8 / 255, green: 0x54 / 255, blue: 0x51 / 255),
+                label: "Buy me a coffee",
+                description: "A one-off on Ko-fi — no account needed.",
+                url: BBLinks.kofi)
+            BBDivider().padding(.leading, 12)
+            SupportLinkRow(
+                symbol: "star.fill",
+                tile: Color(red: 0xEC / 255, green: 0x9A / 255, blue: 0x00 / 255),
+                label: "Star the repo",
+                description: "Free — and it helps just as much.",
+                url: BBLinks.repo)
+        }
+    }
+}
+
+// MARK: - Support link row
+// A whole-row external link: colored icon tile (the System Settings idiom),
+// hover fill, pointer cursor, and a quiet ↗ so it reads as "leaves the app".
+
+private struct SupportLinkRow: View {
+    let symbol: String
+    let tile: Color
+    let label: String
+    let description: String
+    let url: URL
+    @State private var hovered = false
+
+    var body: some View {
+        Button {
+            // The user is working inside Settings; the routed URL must not
+            // demote the window they just clicked in.
+            SettingsWindowController.shared.invalidateOrderSnapshot()
+            NSWorkspace.shared.open(url)
+        } label: {
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(tile)
+                    .frame(width: 22, height: 22)
+                    .overlay(
+                        Image(systemName: symbol)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.white))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(label)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(BB.textPrimary)
+                    Text(description)
+                        .font(BBFont.rowSub)
+                        .foregroundStyle(BB.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "arrow.up.forward")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(hovered ? BB.textSecondary : BB.textTertiary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(hovered ? BB.fillHover : Color.clear)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(label) — opens in your browser")
+        .onHover { inside in
+            hovered = inside
+            (inside ? NSCursor.pointingHand : NSCursor.arrow).set()
+        }
+    }
 }
 
 // MARK: - Group + row building blocks (Settings.jsx Group/Row)
@@ -338,6 +422,7 @@ private struct GripDots: View {
 
 // MARK: - Window controller
 
+
 /// Presents Settings in a manually managed window. Deliberately NOT a SwiftUI
 /// `Settings` scene: for a MenuBarExtra-only app that scene is the app's only
 /// window scene, and macOS sometimes presents it on its own when a clicked
@@ -349,6 +434,54 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private override init() {}
 
     private var window: NSWindow?
+
+    /// The window number (any app's) that sat directly in front of Settings
+    /// the last time this app was about to be activated, plus when. Consumed
+    /// by `restoreOrderAfterActivationRaise`.
+    private var preRaiseNeighbor: (windowNumber: Int?, at: TimeInterval)?
+
+    /// Snapshot the Settings window's place in the global z-order. Call at
+    /// moments that precede a LaunchServices activation raise: the app's
+    /// `willBecomeActive`, and right before the app opens a URL itself.
+    func captureOrderSnapshot() {
+        preRaiseNeighbor = nil
+        guard let window, window.isVisible,
+              let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID)
+                as? [[String: Any]] else { return }
+        var previous: Int?
+        for w in info {
+            guard (w[kCGWindowLayer as String] as? Int) == 0,
+                  let num = w[kCGWindowNumber as String] as? Int else { continue }
+            if num == window.windowNumber {
+                preRaiseNeighbor = (previous, ProcessInfo.processInfo.systemUptime)
+                return
+            }
+            previous = num
+        }
+    }
+
+    /// Undo the window server's activation raise. When another app opens a
+    /// URL, LaunchServices activates BrowBro and the window server brings its
+    /// front window — a background Settings window — above the sender. That
+    /// raise happens below the NSWindow API (no ordering method is called), so
+    /// it can't be blocked; instead, the URL handler calls this to put the
+    /// window back under the neighbor captured just before activation. A user
+    /// summoning Settings never routes a URL, so legitimate raises stay.
+    func restoreOrderAfterActivationRaise() {
+        guard let window, window.isVisible,
+              let snap = preRaiseNeighbor,
+              ProcessInfo.processInfo.systemUptime - snap.at < 3 else { return }
+        preRaiseNeighbor = nil
+        guard let neighbor = snap.windowNumber else { return }  // was frontmost anyway
+        window.order(.below, relativeTo: neighbor)
+    }
+
+    /// Call when the user deliberately brings Settings forward (summoning it,
+    /// clicking a link row inside it): a pending snapshot must not demote a
+    /// window the user just chose to interact with.
+    func invalidateOrderSnapshot() {
+        preRaiseNeighbor = nil
+    }
 
     func show() {
         if window == nil {
@@ -370,6 +503,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             self.window = window
         }
         NSApp.activate(ignoringOtherApps: true)
+        invalidateOrderSnapshot()
         window?.makeKeyAndOrderFront(nil)
     }
 

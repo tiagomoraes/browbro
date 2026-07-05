@@ -126,6 +126,51 @@
   })();
 
   /* =========================================================================
+     MOBILE NAV MENU
+  ========================================================================= */
+  (function () {
+    var toggle = document.getElementById('nav-toggle');
+    var menu = document.getElementById('nav-menu');
+    if (!toggle || !menu) return;
+
+    function isOpen() { return menu.classList.contains('is-open'); }
+    function setOpen(open) {
+      menu.classList.toggle('is-open', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    }
+    function close() { setOpen(false); }
+
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setOpen(!isOpen());
+    });
+
+    // Any link tap closes the menu (all links are same-page anchors or GitHub).
+    menu.addEventListener('click', function (e) {
+      if (e.target.closest('a')) close();
+    });
+
+    // Tap outside the menu (and not on the toggle) dismisses it.
+    document.addEventListener('click', function (e) {
+      if (!isOpen()) return;
+      if (menu.contains(e.target) || toggle.contains(e.target)) return;
+      close();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isOpen()) { close(); toggle.focus(); }
+    });
+
+    // Leaving the mobile breakpoint should never strand an open overlay.
+    var wide = window.matchMedia('(min-width: 901px)');
+    (wide.addEventListener ? wide.addEventListener.bind(wide, 'change')
+                           : wide.addListener.bind(wide))(function () {
+      if (wide.matches) close();
+    });
+  })();
+
+  /* =========================================================================
      BREW COPY
   ========================================================================= */
   (function () {
@@ -457,6 +502,26 @@
         });
         if (!isOpen) { item.classList.add('is-open'); btn.setAttribute('aria-expanded', 'true'); }
       });
+    });
+  })();
+
+  /* =========================================================================
+     SUPPORT: picker keyboard nav (mirrors the app: arrows move, 1–3 open)
+  ========================================================================= */
+  (function () {
+    var pop = document.querySelector('.support-pick__pop');
+    if (!pop) return;
+    var rows = Array.prototype.slice.call(pop.querySelectorAll('.support-row'));
+    if (!rows.length) return;
+    // Scoped to focus-within so the shortcuts never hijack the rest of the page.
+    pop.addEventListener('keydown', function (e) {
+      var i = rows.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown') { e.preventDefault(); rows[(i + 1) % rows.length].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); rows[(i - 1 + rows.length) % rows.length].focus(); }
+      else if (/^[1-9]$/.test(e.key)) {
+        var n = Number(e.key) - 1;
+        if (n < rows.length) { e.preventDefault(); rows[n].click(); }
+      }
     });
   })();
 
