@@ -2,10 +2,16 @@ name: Deploy website
 
 # Publishes the static site in `site/` to GitHub Pages, served at the custom
 # domain browbro.tiagomoraes.cloud (see site/CNAME).
+#
+# The live site tracks `main` (the released state), so it moves in lockstep
+# with tagged releases rather than day-to-day work on `develop`. The download
+# buttons point at `releases/latest/download/BrowBro.dmg`, which GitHub
+# redirects to the newest release's asset — so the site always offers the
+# latest released build.
 
 on:
   push:
-    branches: [develop]
+    branches: [main]
     paths:
       - "site/**"
       - ".github/workflows/deploy-pages.yml"
