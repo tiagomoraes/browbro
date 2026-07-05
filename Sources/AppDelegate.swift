@@ -20,6 +20,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             forEventClass: kGetURLEventClass,
             andEventID: kGetURLEventID
         )
+        // The window server raises this app's front window when LaunchServices
+        // activates it for a routed link. Snapshot the pre-raise z-order while
+        // it can still be observed; the URL handler restores it.
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.willBecomeActiveNotification, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated {
+                SettingsWindowController.shared.captureOrderSnapshot()
+            }
+        }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -59,6 +69,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handle(_ url: URL) {
+        // The activation raise has already happened by the time the URL event
+        // arrives; put a background Settings window back where it was.
+        SettingsWindowController.shared.restoreOrderAfterActivationRaise()
         LinkStore.shared.receive(url)
         // Best-effort source attribution: we're a background accessory, so the
         // frontmost app when the link arrives is almost always its sender.
