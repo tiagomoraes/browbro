@@ -338,6 +338,7 @@ private struct GripDots: View {
 
 // MARK: - Window controller
 
+
 /// Presents Settings in a manually managed window. Deliberately NOT a SwiftUI
 /// `Settings` scene: for a MenuBarExtra-only app that scene is the app's only
 /// window scene, and macOS sometimes presents it on its own when a clicked
@@ -349,6 +350,54 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private override init() {}
 
     private var window: NSWindow?
+
+    /// The window number (any app's) that sat directly in front of Settings
+    /// the last time this app was about to be activated, plus when. Consumed
+    /// by `restoreOrderAfterActivationRaise`.
+    private var preRaiseNeighbor: (windowNumber: Int?, at: TimeInterval)?
+
+    /// Snapshot the Settings window's place in the global z-order. Call at
+    /// moments that precede a LaunchServices activation raise: the app's
+    /// `willBecomeActive`, and right before the app opens a URL itself.
+    func captureOrderSnapshot() {
+        preRaiseNeighbor = nil
+        guard let window, window.isVisible,
+              let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID)
+                as? [[String: Any]] else { return }
+        var previous: Int?
+        for w in info {
+            guard (w[kCGWindowLayer as String] as? Int) == 0,
+                  let num = w[kCGWindowNumber as String] as? Int else { continue }
+            if num == window.windowNumber {
+                preRaiseNeighbor = (previous, ProcessInfo.processInfo.systemUptime)
+                return
+            }
+            previous = num
+        }
+    }
+
+    /// Undo the window server's activation raise. When another app opens a
+    /// URL, LaunchServices activates BrowBro and the window server brings its
+    /// front window — a background Settings window — above the sender. That
+    /// raise happens below the NSWindow API (no ordering method is called), so
+    /// it can't be blocked; instead, the URL handler calls this to put the
+    /// window back under the neighbor captured just before activation. A user
+    /// summoning Settings never routes a URL, so legitimate raises stay.
+    func restoreOrderAfterActivationRaise() {
+        guard let window, window.isVisible,
+              let snap = preRaiseNeighbor,
+              ProcessInfo.processInfo.systemUptime - snap.at < 3 else { return }
+        preRaiseNeighbor = nil
+        guard let neighbor = snap.windowNumber else { return }  // was frontmost anyway
+        window.order(.below, relativeTo: neighbor)
+    }
+
+    /// Call when the user deliberately brings Settings forward (summoning it,
+    /// clicking a link row inside it): a pending snapshot must not demote a
+    /// window the user just chose to interact with.
+    func invalidateOrderSnapshot() {
+        preRaiseNeighbor = nil
+    }
 
     func show() {
         if window == nil {
@@ -370,6 +419,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             self.window = window
         }
         NSApp.activate(ignoringOtherApps: true)
+        invalidateOrderSnapshot()
         window?.makeKeyAndOrderFront(nil)
     }
 
