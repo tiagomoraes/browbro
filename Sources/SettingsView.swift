@@ -28,6 +28,7 @@ struct SettingsView: View {
                     }
                     catalogGroup
                     behaviorGroup
+                    supportGroup
                 }
                 .padding(BB.padPanel)
             }
@@ -195,6 +196,89 @@ struct SettingsView: View {
                             launchAtLogin = LoginItem.isEnabled
                         }))
                 })
+        }
+    }
+    // MARK: Support
+
+    /// The ask, kept quiet and last: three link rows, System-Settings style.
+    /// The free option is a first-class row on purpose — no tiers, no minimums.
+    private var supportGroup: some View {
+        SettingsGroup(title: "Support the project", hint: "any amount helps") {
+            SupportLinkRow(
+                symbol: "heart.fill",
+                tile: Color(red: 0xDB / 255, green: 0x61 / 255, blue: 0xA2 / 255),
+                label: "Sponsor on GitHub",
+                description: "One-time or monthly — you pick the amount.",
+                url: BBLinks.sponsors)
+            BBDivider().padding(.leading, 12)
+            SupportLinkRow(
+                symbol: "cup.and.saucer.fill",
+                tile: Color(red: 0xE8 / 255, green: 0x54 / 255, blue: 0x51 / 255),
+                label: "Buy me a coffee",
+                description: "A one-off on Ko-fi — no account needed.",
+                url: BBLinks.kofi)
+            BBDivider().padding(.leading, 12)
+            SupportLinkRow(
+                symbol: "star.fill",
+                tile: Color(red: 0xEC / 255, green: 0x9A / 255, blue: 0x00 / 255),
+                label: "Star the repo",
+                description: "Free — and it helps just as much.",
+                url: BBLinks.repo)
+        }
+    }
+}
+
+// MARK: - Support link row
+// A whole-row external link: colored icon tile (the System Settings idiom),
+// hover fill, pointer cursor, and a quiet ↗ so it reads as "leaves the app".
+
+private struct SupportLinkRow: View {
+    let symbol: String
+    let tile: Color
+    let label: String
+    let description: String
+    let url: URL
+    @State private var hovered = false
+
+    var body: some View {
+        Button {
+            // The user is working inside Settings; the routed URL must not
+            // demote the window they just clicked in.
+            SettingsWindowController.shared.invalidateOrderSnapshot()
+            NSWorkspace.shared.open(url)
+        } label: {
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(tile)
+                    .frame(width: 22, height: 22)
+                    .overlay(
+                        Image(systemName: symbol)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.white))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(label)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(BB.textPrimary)
+                    Text(description)
+                        .font(BBFont.rowSub)
+                        .foregroundStyle(BB.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "arrow.up.forward")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(hovered ? BB.textSecondary : BB.textTertiary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(hovered ? BB.fillHover : Color.clear)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(label) — opens in your browser")
+        .onHover { inside in
+            hovered = inside
+            (inside ? NSCursor.pointingHand : NSCursor.arrow).set()
         }
     }
 }

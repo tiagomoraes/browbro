@@ -65,6 +65,14 @@ struct MenuDropdownView: View {
                 SettingsWindowController.shared.show()
             }
 
+            MenuRow(title: "Support BrowBro", shortcut: "♥") {
+                closeMenuWindow()
+                // Self-initiated opens route back through BrowBro without a
+                // fresh willBecomeActive; snapshot the z-order here instead.
+                SettingsWindowController.shared.captureOrderSnapshot()
+                NSWorkspace.shared.open(BBLinks.supportPage)
+            }
+
             MenuSeparator()
 
             MenuRow(title: "Quit BrowBro", shortcut: "⌘Q") {
