@@ -18,6 +18,16 @@ BrowBro is not yet notarized, so macOS blocks it on first launch. To open it: go
 **System Settings > Privacy & Security** and click **Open Anyway** (or run
 `xattr -dr com.apple.quarantine "/Applications/BrowBro.app"`).
 
+## Updating
+
+BrowBro updates itself. From **Settings → Updates** you can hit **Check Now** or leave
+**Automatically check for updates** on, and the menu-bar dropdown has a **Check for
+Updates…** item too. Updates (powered by [Sparkle](https://sparkle-project.org)) are
+signature-verified and installed in place — and, unlike the initial download, they don't
+trip the first-launch "Open Anyway" prompt. Homebrew users can also just
+`brew upgrade --cask browbro`. See [docs/UPDATES.md](docs/UPDATES.md) for how releases are
+signed and published.
+
 ## Website
 
 The marketing site lives in [`site/`](site/): a self-contained static site (no build

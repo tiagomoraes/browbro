@@ -44,13 +44,19 @@ spctl -a -t open --context context:primary-signature -vv build/BrowBro.dmg   # -
 
 ## Release it
 
-1. Bump `MARKETING_VERSION` in `project.yml`, update `CHANGELOG.md`.
+1. Bump `MARKETING_VERSION` **and** `CURRENT_PROJECT_VERSION` in `project.yml`
+   (the build number must strictly increase for Sparkle — see
+   [UPDATES.md](UPDATES.md)), and update `CHANGELOG.md`.
 2. Cut `release/x.y.z`, PR into `main`, tag `vX.Y.Z` (see CONTRIBUTING.md).
 3. Upload the notarized **`BrowBro.dmg`** as the release asset (keep the exact
    name so `releases/latest/download/BrowBro.dmg` and the website keep working).
-4. Update the cask in the [homebrew-browbro tap](https://github.com/tiagomoraes/homebrew-browbro):
+4. Publish the Sparkle update feed so existing installs can self-update: run
+   `packaging/appcast/generate-item.sh build/BrowBro.dmg`, paste the printed
+   `<item>` at the top of the `<channel>` in `site/appcast.xml`, and merge it to
+   `main` (Pages redeploys the feed). Full walkthrough in [UPDATES.md](UPDATES.md).
+5. Update the cask in the [homebrew-browbro tap](https://github.com/tiagomoraes/homebrew-browbro):
    bump `version` and `sha256`.
-5. Once notarized and reasonably popular, the cask can be submitted to
+6. Once notarized and reasonably popular, the cask can be submitted to
    homebrew-cask core so the bare `brew install --cask browbro` works.
 
 ## Notes
