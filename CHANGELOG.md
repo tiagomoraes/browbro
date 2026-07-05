@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-07-05
+
+### Added
+
+- Support the project from inside the app: a **Support the project** group in Settings
+  (Sponsor on GitHub, Buy me a coffee, Star the repo) and a **Support BrowBro** item in the
+  menu-bar dropdown. Any amount helps — no tiers, no minimums.
+
+### Fixed
+
+- A background Settings window no longer jumps to the front every time a link is routed.
+  Opening a link activates BrowBro (it's the default handler) and the window server would
+  raise its front window; the routed-link path now restores the window to its prior stacking
+  order. The picker is also non-activating now, so the app you clicked the link in keeps focus.
+- Restored the **Settings…** (⌘,) menu command.
+
 ## [0.1.2] - 2026-07-04
 
 ### Changed
@@ -51,7 +67,8 @@ yet notarized, so the first launch needs a manual "Open Anyway" (see the release
 - Marketing website (static, in `site/`) published to GitHub Pages at browbro.tiagomoraes.cloud.
 - Project scaffolding: Gitflow branching model, contribution guidelines, issue/PR templates.
 
-[Unreleased]: https://github.com/tiagomoraes/browbro/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/tiagomoraes/browbro/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/tiagomoraes/browbro/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/tiagomoraes/browbro/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/tiagomoraes/browbro/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/tiagomoraes/browbro/releases/tag/v0.1.0
