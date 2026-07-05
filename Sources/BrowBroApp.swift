@@ -20,5 +20,17 @@ struct BrowBroApp: App {
             Image(nsImage: BBBrand.menuBarIcon())
         }
         .menuBarExtraStyle(.window)
+        .commands {
+            // Re-add the standard "Settings…" item (⌘,) that the removed
+            // Settings scene used to provide, wired to our manually managed
+            // window. Main-menu key equivalents fire whenever BrowBro is the
+            // active app, which is the shortcut the dropdown advertises.
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") {
+                    SettingsWindowController.shared.show()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+        }
     }
 }
