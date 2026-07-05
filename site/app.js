@@ -506,6 +506,26 @@
   })();
 
   /* =========================================================================
+     SUPPORT: picker keyboard nav (mirrors the app: arrows move, 1–3 open)
+  ========================================================================= */
+  (function () {
+    var pop = document.querySelector('.support-pick__pop');
+    if (!pop) return;
+    var rows = Array.prototype.slice.call(pop.querySelectorAll('.support-row'));
+    if (!rows.length) return;
+    // Scoped to focus-within so the shortcuts never hijack the rest of the page.
+    pop.addEventListener('keydown', function (e) {
+      var i = rows.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown') { e.preventDefault(); rows[(i + 1) % rows.length].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); rows[(i - 1 + rows.length) % rows.length].focus(); }
+      else if (/^[1-9]$/.test(e.key)) {
+        var n = Number(e.key) - 1;
+        if (n < rows.length) { e.preventDefault(); rows[n].click(); }
+      }
+    });
+  })();
+
+  /* =========================================================================
      Footer year + scroll reveal
   ========================================================================= */
   (function () {

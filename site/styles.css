@@ -803,45 +803,45 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
   font: var(--weight-regular) var(--text-md)/1.6 var(--font-sans);
   color: var(--text-secondary);
 }
-.support__costs {
-  display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;
-  margin: 32px auto 0; max-width: 600px;
+/* The ask, rendered as the product itself: a BrowBro picker whose targets are
+   the ways to help. The free option is a first-class row on purpose — it's the
+   design saying "no minimums" louder than any copy could. */
+.support-pick { margin: 34px auto 0; max-width: 400px; }
+.support-pick__pop { text-align: left; }
+
+.support-row {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 10px; border-radius: var(--radius-md);
+  text-decoration: none; cursor: pointer;
+  transition: background var(--dur-instant) var(--ease-out);
 }
-.cost {
-  flex: 1 1 150px; min-width: 0;
-  display: flex; flex-direction: column; align-items: center; gap: 5px;
-  padding: 18px 14px; border-radius: var(--radius-lg);
-  background: var(--fill-quiet);
+/* Hover/focus = the app's selection state: the row fills with accent. */
+.support-row:hover, .support-row:focus-visible { background: var(--accent-fill); outline: none; }
+
+.support-row__ico {
+  flex: none; width: 34px; height: 34px; border-radius: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
   box-shadow: inset 0 0 0 0.5px var(--border-hairline);
 }
-.cost__icon {
-  width: 38px; height: 38px; margin-bottom: 3px; border-radius: 11px;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: var(--accent-weak); color: var(--accent);
-}
-.cost__label { font: var(--weight-semibold) var(--text-md)/1.2 var(--font-sans); color: var(--text-primary); }
-.cost__val   { font: var(--weight-regular)  var(--text-sm)/1.2 var(--font-sans); color: var(--text-secondary); }
+/* Opaque tiles so the colors hold when a row fills with accent, like real app icons. */
+.support-row__ico--heart  { background: #fae3ef; color: #c74e91; }
+.support-row__ico--coffee { background: #ffe6e5; color: #d6403c; }
+.support-row__ico--star   { background: #fcefd2; color: #b57c00; }
+html[data-theme="dark"] .support-row__ico--heart  { background: #432c39; color: #e57fb4; }
+html[data-theme="dark"] .support-row__ico--coffee { background: #442e2d; color: #ff7a77; }
+html[data-theme="dark"] .support-row__ico--star   { background: #443823; color: #f9ab00; }
 
-.support__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 36px; }
-.support__fine { margin: 20px 0 0; font: var(--weight-regular) var(--text-sm)/1.4 var(--font-sans); color: var(--text-tertiary); }
+.support-row__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.support-row__name   { font: var(--weight-semibold) var(--text-lg)/1.25 var(--font-sans); color: var(--text-primary); letter-spacing: -0.01em; }
+.support-row__detail { font: var(--weight-regular) var(--text-base)/1.35 var(--font-sans); color: var(--text-secondary); }
+.support-row:hover .support-row__name,   .support-row:focus-visible .support-row__name   { color: var(--on-accent); }
+.support-row:hover .support-row__detail, .support-row:focus-visible .support-row__detail { color: rgba(255, 255, 255, 0.9); }
+.support-row:hover .keycap, .support-row:focus-visible .keycap {
+  background: rgba(255, 255, 255, 0.22); color: #ffffff;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.28);
+}
 
-/* Secondary large button (Ko-fi) — raised + hairline, matches btn-accent--lg height. */
-.btn-line {
-  display: inline-flex; align-items: center; gap: 10px;
-  height: 44px; padding: 0 20px;
-  border-radius: var(--radius-md);
-  background: var(--surface-raised); color: var(--text-primary);
-  font: var(--weight-semibold) var(--text-md)/1 var(--font-sans); letter-spacing: -0.01em;
-  text-decoration: none; cursor: pointer;
-  box-shadow: inset 0 0 0 0.5px var(--border-hairline), var(--shadow-sm);
-  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
-}
-.btn-line:hover { background: var(--fill-hover); }
-.btn-line:active { transform: scale(0.98); }
-.btn-line--lg {
-  height: 54px; padding: 0 26px; gap: 11px;
-  border-radius: 14px; font: var(--weight-semibold) 16px/1 var(--font-sans);
-}
+.support__fine { margin: 24px 0 0; font: var(--weight-regular) var(--text-sm)/1.4 var(--font-sans); color: var(--text-tertiary); }
 
 /* =============================================================================
    FOOTER
@@ -932,9 +932,6 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
   #how, #demo, #customize, #github, #support, #faq { padding-left: 20px; padding-right: 20px; }
 
   .support { padding: 40px 22px 36px; }
-  .support__actions { flex-direction: column; align-items: stretch; }
-  .support__actions .btn-accent--lg,
-  .support__actions .btn-line--lg { justify-content: center; }
 
   .hero { padding-left: 20px; padding-right: 20px; }
   .hero__scene { min-height: 300px; padding: 16px; }
