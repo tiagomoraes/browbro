@@ -33,6 +33,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Start Sparkle so scheduled update checks run in the background (the
+        // Settings toggle and menu item drive on-demand checks). Referencing the
+        // singleton is what constructs and starts the updater.
+        _ = UpdaterController.shared
+
         // Guided first run: transparent, reversible default-browser takeover.
         if !Preferences.hasCompletedOnboarding {
             OnboardingController.shared.show()

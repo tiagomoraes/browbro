@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>BrowBro</title>
+    <link>https://browbro.tiagomoraes.cloud/appcast.xml</link>
+    <description>In-app update feed for BrowBro. Each item is EdDSA-signed; see docs/UPDATES.md.</description>
+    <language>en</language>
+    <item>
+      <title>Version 0.1.4</title>
+      <link>https://github.com/tiagomoraes/browbro/releases/tag/v0.1.4</link>
+      <sparkle:version>4</sparkle:version>
+      <sparkle:shortVersionString>0.1.4</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <pubDate>Sun, 05 Jul 2026 05:39:20 +0000</pubDate>
+      <description><![CDATA[
+<h4>Added</h4>
+<ul>
+<li><strong>In-app updates.</strong> BrowBro now updates itself (via <a href="https://sparkle-project.org">Sparkle</a>), so DMG and Homebrew installs no longer need a manual re-download. <strong>Settings → Updates</strong> has a <strong>Check Now</strong> button and an <strong>Automatically check for updates</strong> toggle, and the menu-bar dropdown gains a <strong>Check for Updates…</strong> item. Updates are verified with an EdDSA signature and installed in place — and, unlike a manual download, they skip the first-run "Open Anyway" prompt. See <a href="docs/UPDATES.md">docs/UPDATES.md</a>.</li>
+<li>A <strong>version indicator</strong> in Settings: the current version and build show at the bottom of the window ("BrowBro 0.1.4 (4)").</li>
+</ul>
+      ]]></description>
+      <enclosure url="https://github.com/tiagomoraes/browbro/releases/download/v0.1.4/BrowBro.dmg"
+                 sparkle:edSignature="3CzJoP19iKfhiOEXfXhGzACVKTLPPtjWI9vdJbhIVEwXHOnFctmrQ/NBZ2Iw7p6uDEaOIw5RA5spGPmFfipaDQ==" length="2597054"
+                 type="application/x-apple-diskimage" />
+    </item>
+  </channel>
+</rss>

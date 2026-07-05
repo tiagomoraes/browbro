@@ -4,11 +4,20 @@ options:
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
+packages:
+  # In-app updates for the DMG/Homebrew build (Sparkle is the standard for
+  # non-App-Store macOS apps). Trust is anchored on an EdDSA signature over each
+  # update archive, independent of Apple notarization — see docs/UPDATES.md.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.5.0"
 settings:
   base:
     PRODUCT_BUNDLE_IDENTIFIER: so.aca.browbro
-    MARKETING_VERSION: "0.1.3"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "0.1.4"
+    # CFBundleVersion. Sparkle compares this to decide if an update is newer, so
+    # it MUST increase on every public release (see docs/UPDATES.md).
+    CURRENT_PROJECT_VERSION: "4"
     # Swift 5 language mode keeps the prototype free of strict-concurrency
     # noise; we can tighten to Swift 6 mode once the slice is proven.
     SWIFT_VERSION: "5.0"
@@ -32,6 +41,8 @@ targets:
       - Sources
       - path: Resources/AppIcon.icns
         buildPhase: resources
+    dependencies:
+      - package: Sparkle
     settings:
       base:
         GENERATE_INFOPLIST_FILE: "NO"

@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 /// access, the picker catalog (reorder + show/hide), and behavior toggles.
 struct SettingsView: View {
     @State private var catalog = TargetCatalog.shared
+    @State private var updater = UpdaterController.shared
     @State private var isDefault = DefaultBrowser.isBrowBro
     @State private var chromeAccess = false
     @State private var working = false
@@ -28,7 +29,9 @@ struct SettingsView: View {
                     }
                     catalogGroup
                     behaviorGroup
+                    updatesGroup
                     supportGroup
+                    versionFooter
                 }
                 .padding(BB.padPanel)
             }
@@ -198,6 +201,55 @@ struct SettingsView: View {
                 })
         }
     }
+
+    // MARK: Updates
+
+    private var updatesGroup: some View {
+        SettingsGroup(title: "Updates") {
+            SettingsRow(
+                leading: {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(BB.iconSecondary)
+                },
+                label: "Check for updates",
+                description: "BrowBro installs updates in place — no reinstall, no drag to Applications.",
+                trailing: {
+                    Button("Check Now") { updater.checkForUpdates() }
+                        .buttonStyle(BBButtonStyle(variant: .secondary, size: .sm))
+                        .disabled(!updater.canCheckForUpdates)
+                })
+            BBDivider().padding(.leading, 12)
+            SettingsRow(
+                label: "Automatically check for updates",
+                description: "Check in the background and let me know when a new version is ready.",
+                trailing: {
+                    BBSwitch(isOn: Binding(
+                        get: { updater.automaticallyChecksForUpdates },
+                        set: { updater.automaticallyChecksForUpdates = $0 }))
+                })
+        }
+    }
+
+    // MARK: Version footer
+
+    /// The at-a-glance "which build am I on" line, kept quiet at the very bottom.
+    private var versionFooter: some View {
+        Text(Self.versionString)
+            .font(BBFont.caption)
+            .foregroundStyle(BB.textQuaternary)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 2)
+    }
+
+    /// "BrowBro 0.1.4 (4)" — short version with the build number in parentheses.
+    static var versionString: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "—"
+        let build = info?["CFBundleVersion"] as? String ?? "—"
+        return "BrowBro \(short) (\(build))"
+    }
+
     // MARK: Support
 
     /// The ask, kept quiet and last: three link rows, System-Settings style.

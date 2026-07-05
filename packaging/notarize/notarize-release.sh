@@ -38,6 +38,23 @@ xcodebuild -project BrowBro.xcodeproj -scheme BrowBro -configuration Release \
 APP="$DD/Build/Products/Release/BrowBro.app"
 
 echo "▶ Re-signing with hardened runtime + secure timestamp…"
+# Sparkle ships nested helpers (an updater app + XPC services). They must be
+# signed inside-out with the same Developer ID and hardened runtime, or
+# notarization rejects them. `--deep` does NOT sign these correctly (Sparkle
+# advises against it), so sign each explicitly, innermost first, then the app.
+SPARKLE="$APP/Contents/Frameworks/Sparkle.framework"
+if [ -d "$SPARKLE" ]; then
+  SPARKLE_VERSION="$SPARKLE/Versions/Current"
+  for nested in \
+    "$SPARKLE_VERSION/XPCServices/Downloader.xpc" \
+    "$SPARKLE_VERSION/XPCServices/Installer.xpc" \
+    "$SPARKLE_VERSION/Autoupdate" \
+    "$SPARKLE_VERSION/Updater.app" \
+    "$SPARKLE"; do
+    [ -e "$nested" ] && codesign --force --options runtime --timestamp \
+      --sign "$DEVELOPER_ID" "$nested"
+  done
+fi
 codesign --force --options runtime --timestamp \
   --entitlements "$ENTITLEMENTS" --sign "$DEVELOPER_ID" "$APP"
 codesign --verify --strict --deep "$APP"
