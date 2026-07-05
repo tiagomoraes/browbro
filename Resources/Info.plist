@@ -23,6 +23,19 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 
+	<!-- Sparkle in-app updates. The feed lists released builds; each update
+	     archive is verified against SUPublicEDKey below (EdDSA), so trust does
+	     not depend on Apple notarization. See docs/UPDATES.md. -->
+	<key>SUFeedURL</key>
+	<string>https://browbro.tiagomoraes.cloud/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>WYtqTgJc2C4c4UUZvfj/wa2qpCi11K584cjDcVf+gwU=</string>
+	<!-- Turn automatic update checks on by default (and skip Sparkle's
+	     first-launch permission prompt). The Settings toggle can turn them off;
+	     "Check for Updates…" always works regardless. -->
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+
 	<!-- App icon: white unibrow mark on a BrowBro-blue squircle
 	     (regenerate via scripts/generate-appicon.swift). -->
 	<key>CFBundleIconFile</key>

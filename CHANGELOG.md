@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-07-05
+
+### Added
+
+- **In-app updates.** BrowBro now updates itself (via [Sparkle](https://sparkle-project.org)),
+  so DMG and Homebrew installs no longer need a manual re-download. **Settings → Updates** has a
+  **Check Now** button and an **Automatically check for updates** toggle, and the menu-bar
+  dropdown gains a **Check for Updates…** item. Updates are verified with an EdDSA signature and
+  installed in place — and, unlike a manual download, they skip the first-run "Open Anyway"
+  prompt. See [docs/UPDATES.md](docs/UPDATES.md).
+- A **version indicator** in Settings: the current version and build show at the bottom of the
+  window ("BrowBro 0.1.4 (4)").
+
 ## [0.1.3] - 2026-07-05
 
 ### Added
@@ -67,7 +80,8 @@ yet notarized, so the first launch needs a manual "Open Anyway" (see the release
 - Marketing website (static, in `site/`) published to GitHub Pages at browbro.tiagomoraes.cloud.
 - Project scaffolding: Gitflow branching model, contribution guidelines, issue/PR templates.
 
-[Unreleased]: https://github.com/tiagomoraes/browbro/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/tiagomoraes/browbro/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/tiagomoraes/browbro/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/tiagomoraes/browbro/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/tiagomoraes/browbro/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/tiagomoraes/browbro/compare/v0.1.0...v0.1.1

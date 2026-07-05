@@ -65,6 +65,11 @@ struct MenuDropdownView: View {
                 SettingsWindowController.shared.show()
             }
 
+            MenuRow(title: "Check for Updates…") {
+                closeMenuWindow()
+                UpdaterController.shared.checkForUpdates()
+            }
+
             MenuRow(title: "Support BrowBro", shortcut: "♥") {
                 closeMenuWindow()
                 // Self-initiated opens route back through BrowBro without a
