@@ -46,8 +46,11 @@ or which **Chrome profile** — opens it. Open-source, in the spirit of Velja.
 ## Out of scope → milestone 2+
 
 Rules engine · "always use X for this site" · URL transforms (unshorten / strip tracking) ·
-routing to native apps (Zoom/Slack deep links) · hold-modifier-to-bypass ·
+routing to native apps (Zoom/Slack deep links) ·
 other Chromium browsers' profiles · Arc / Firefox.
+
+_(Shipped: hold-a-key-to-pick — the picker can be gated behind a modifier, with a plain click
+opening a chosen default. See Settings → Behavior.)_
 
 ## Recommended build order (de-risk first)
 
