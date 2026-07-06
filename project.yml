@@ -14,10 +14,10 @@ packages:
 settings:
   base:
     PRODUCT_BUNDLE_IDENTIFIER: so.aca.browbro
-    MARKETING_VERSION: "0.1.4"
+    MARKETING_VERSION: "0.1.5"
     # CFBundleVersion. Sparkle compares this to decide if an update is newer, so
     # it MUST increase on every public release (see docs/UPDATES.md).
-    CURRENT_PROJECT_VERSION: "4"
+    CURRENT_PROJECT_VERSION: "5"
     # Swift 5 language mode keeps the prototype free of strict-concurrency
     # noise; we can tighten to Swift 6 mode once the slice is proven.
     SWIFT_VERSION: "5.0"

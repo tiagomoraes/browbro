@@ -38,6 +38,17 @@ final class PickerController {
             return
         }
 
+        // Modifier mode: a plain click opens the chosen default directly; the
+        // picker only appears while the trigger key is held (read now, moments
+        // after the click). A hidden target can still be the default, so resolve
+        // against the full catalog before falling back to the top of the list.
+        if Preferences.requireModifierForPicker && !Preferences.triggerModifier.isHeld {
+            let target = catalog.all.first { $0.id == Preferences.defaultTargetID } ?? targets[0]
+            pickerLog.info("modifier mode, key not held; opening \(target.name, privacy: .public)")
+            launch(target, url: url)
+            return
+        }
+
         // If only one target is shown, just open it (Settings: skip picker).
         if targets.count == 1 && Preferences.skipSingle {
             launch(targets[0], url: url)
