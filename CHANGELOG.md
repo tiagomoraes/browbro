@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-07-06
+
 ### Added
 
 - **Hold a key to pick.** A new **Settings → Behavior** option, "Ask only when I hold a key",
@@ -88,7 +90,8 @@ yet notarized, so the first launch needs a manual "Open Anyway" (see the release
 - Marketing website (static, in `site/`) published to GitHub Pages at browbro.tiagomoraes.cloud.
 - Project scaffolding: Gitflow branching model, contribution guidelines, issue/PR templates.
 
-[Unreleased]: https://github.com/tiagomoraes/browbro/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/tiagomoraes/browbro/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/tiagomoraes/browbro/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/tiagomoraes/browbro/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/tiagomoraes/browbro/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/tiagomoraes/browbro/compare/v0.1.1...v0.1.2

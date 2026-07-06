@@ -6,6 +6,23 @@
     <description>In-app update feed for BrowBro. Each item is EdDSA-signed; see docs/UPDATES.md.</description>
     <language>en</language>
     <item>
+      <title>Version 0.1.5</title>
+      <link>https://github.com/tiagomoraes/browbro/releases/tag/v0.1.5</link>
+      <sparkle:version>5</sparkle:version>
+      <sparkle:shortVersionString>0.1.5</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <pubDate>Mon, 06 Jul 2026 18:03:53 +0000</pubDate>
+      <description><![CDATA[
+<h4>Added</h4>
+<ul>
+<li><strong>Hold a key to pick.</strong> A new <strong>Settings → Behavior</strong> option, "Ask only when I hold a key", makes a plain click open your default browser straight away and only pops the picker when you hold a modifier while clicking. Choose the trigger key (⌘ / ⌥ / ⌃ / ⇧, default ⌥) and which browser plain clicks open in. The picker's always-on behavior is unchanged when the option is off.</li>
+</ul>
+      ]]></description>
+      <enclosure url="https://github.com/tiagomoraes/browbro/releases/download/v0.1.5/BrowBro.dmg"
+                 sparkle:edSignature="uVNgpOF4Hgzv2X3g/tOIp6y2eOk9h5yZ2PX1eymqh2CdFp5qOmJ0LtP434K4otZ6xGaQ/DdT6ropk0ia6NYJBw==" length="2656301"
+                 type="application/x-apple-diskimage" />
+    </item>
+    <item>
       <title>Version 0.1.4</title>
       <link>https://github.com/tiagomoraes/browbro/releases/tag/v0.1.4</link>
       <sparkle:version>4</sparkle:version>
