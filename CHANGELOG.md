@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Hold a key to pick.** A new **Settings → Behavior** option, "Ask only when I hold a key",
+  makes a plain click open your default browser straight away and only pops the picker when you
+  hold a modifier while clicking. Choose the trigger key (⌘ / ⌥ / ⌃ / ⇧, default ⌥) and which
+  browser plain clicks open in. The picker's always-on behavior is unchanged when the option
+  is off.
+
 ## [0.1.4] - 2026-07-05
 
 ### Added

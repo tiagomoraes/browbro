@@ -13,6 +13,9 @@ struct SettingsView: View {
 
     @AppStorage(Preferences.rememberLastKey) private var rememberLast = false
     @AppStorage(Preferences.skipSingleKey) private var skipSingle = false
+    @AppStorage(Preferences.requireModifierKey) private var requireModifier = false
+    @AppStorage(Preferences.triggerModifierKey) private var triggerModifier: TriggerModifier = .option
+    @AppStorage(Preferences.defaultTargetKey) private var defaultTargetID = ""
     @State private var launchAtLogin = false
 
     @State private var draggingID: String?
@@ -64,6 +67,11 @@ struct SettingsView: View {
         isDefault = DefaultBrowser.isBrowBro
         chromeAccess = ChromeAccess.canReadLocalState()
         launchAtLogin = LoginItem.isEnabled
+        // Keep the "open plain clicks in" choice pointing at a real target:
+        // seed it on first run, and heal it if the saved browser vanished.
+        if catalog.all.first(where: { $0.id == defaultTargetID }) == nil {
+            defaultTargetID = catalog.visible.first?.id ?? catalog.all.first?.id ?? ""
+        }
     }
 
     // MARK: Default browser
@@ -179,6 +187,23 @@ struct SettingsView: View {
     private var behaviorGroup: some View {
         SettingsGroup(title: "Behavior") {
             SettingsRow(
+                label: "Ask only when I hold a key",
+                description: "Plain clicks open your default browser. Hold \(triggerModifier.symbol) to pop the picker.",
+                trailing: { BBSwitch(isOn: $requireModifier) })
+            if requireModifier {
+                BBDivider().padding(.leading, 12)
+                SettingsRow(
+                    label: "Trigger key",
+                    description: "Held while you click a link.",
+                    trailing: { ModifierPicker(selection: $triggerModifier) })
+                BBDivider().padding(.leading, 12)
+                SettingsRow(
+                    label: "Open plain clicks in",
+                    description: "The browser a link opens in when you don't hold \(triggerModifier.symbol).",
+                    trailing: { defaultTargetPicker })
+            }
+            BBDivider().padding(.leading, 12)
+            SettingsRow(
                 label: "Remember last used",
                 description: "Pre-highlight whatever you picked last time.",
                 trailing: { BBSwitch(isOn: $rememberLast) })
@@ -200,6 +225,21 @@ struct SettingsView: View {
                         }))
                 })
         }
+        .animation(BBMotion.easeOut(BBMotion.panel), value: requireModifier)
+    }
+
+    /// Native popup to choose which browser a plain click opens in (modifier
+    /// mode). Lists the whole catalog so a hidden target can still be the default.
+    private var defaultTargetPicker: some View {
+        Picker("", selection: $defaultTargetID) {
+            ForEach(catalog.all) { target in
+                Text(target.name).tag(target.id)
+            }
+        }
+        .labelsHidden()
+        .pickerStyle(.menu)
+        .tint(BB.accent)
+        .fixedSize()
     }
 
     // MARK: Updates
@@ -469,6 +509,43 @@ private struct GripDots: View {
         }
         .foregroundStyle(BB.iconSecondary)
         .frame(width: 16, height: 16)
+    }
+}
+
+// MARK: - Modifier segmented control (⌘ ⌥ ⌃ ⇧)
+// The trigger-key chooser for "ask only when I hold a key". Styled from the
+// tokens so the on-state reads as BrowBro Blue, not the system accent.
+
+private struct ModifierPicker: View {
+    @Binding var selection: TriggerModifier
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(TriggerModifier.allCases, id: \.self) { mod in
+                let on = mod == selection
+                Button {
+                    selection = mod
+                } label: {
+                    Text(mod.symbol)
+                        .font(.system(size: 13, weight: .medium))
+                        .frame(width: 28, height: 22)
+                        .foregroundStyle(on ? BB.onAccent : BB.textSecondary)
+                        .background(
+                            on ? BB.accentFill : BB.fillQuiet,
+                            in: RoundedRectangle(cornerRadius: BB.radiusSM, style: .continuous))
+                        .overlay {
+                            if !on {
+                                RoundedRectangle(cornerRadius: BB.radiusSM, style: .continuous)
+                                    .strokeBorder(BB.borderHairline, lineWidth: BB.hairline)
+                            }
+                        }
+                }
+                .buttonStyle(.plain)
+                .cursor(.pointingHand)
+                .help(mod.name)
+            }
+        }
+        .animation(BBMotion.easeOut(BBMotion.instant), value: selection)
     }
 }
 
