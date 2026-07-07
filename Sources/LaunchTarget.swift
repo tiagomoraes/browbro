@@ -1,6 +1,7 @@
 import Foundation
 
-/// A single pickable destination: either a browser app, or a specific Chrome profile.
+/// A single pickable destination: a browser app, a specific Chrome profile,
+/// or a Private Window variant of either.
 struct LaunchTarget: Identifiable, Hashable {
     enum Kind: Hashable {
         case browser
@@ -14,4 +15,7 @@ struct LaunchTarget: Identifiable, Hashable {
     let bundleID: String
     let kind: Kind
     let colorARGB: Int?       // Chrome profile highlight color, else nil
+    var privateFlag: String? = nil  // launch argument for a Private Window variant, else nil
+
+    var isPrivate: Bool { privateFlag != nil }
 }

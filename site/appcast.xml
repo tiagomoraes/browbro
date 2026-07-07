@@ -6,6 +6,23 @@
     <description>In-app update feed for BrowBro. Each item is EdDSA-signed; see docs/UPDATES.md.</description>
     <language>en</language>
     <item>
+      <title>Version 0.1.6</title>
+      <link>https://github.com/tiagomoraes/browbro/releases/tag/v0.1.6</link>
+      <sparkle:version>6</sparkle:version>
+      <sparkle:shortVersionString>0.1.6</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <pubDate>Tue, 07 Jul 2026 20:52:16 +0000</pubDate>
+      <description><![CDATA[
+<h4>Added</h4>
+<ul>
+<li><strong>Private windows.</strong> A new <strong>Settings → Private windows</strong> switch adds picker entries that open links in a browser's incognito/private window — per browser and even per Chrome profile ("Work Incognito" opens that profile's incognito window). Supported for Chrome, Chromium, Brave, Edge, Vivaldi, Opera, and Firefox; entries wear a sunglasses badge so a private pick is unmistakable. Safari is not supported (it offers no way to open a private window programmatically).</li>
+</ul>
+      ]]></description>
+      <enclosure url="https://github.com/tiagomoraes/browbro/releases/download/v0.1.6/BrowBro.dmg"
+                 sparkle:edSignature="EhMS/Z+Whh/tx7mBJsQC9T/f256b8rjVnOn3c9g4l9ogYb1wdmTsAAjyzsVsd8zVwMFAwesbomrsmndiQuc2DA==" length="2704903"
+                 type="application/x-apple-diskimage" />
+    </item>
+    <item>
       <title>Version 0.1.5</title>
       <link>https://github.com/tiagomoraes/browbro/releases/tag/v0.1.5</link>
       <sparkle:version>5</sparkle:version>
