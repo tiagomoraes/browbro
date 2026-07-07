@@ -16,6 +16,7 @@ struct SettingsView: View {
     @AppStorage(Preferences.requireModifierKey) private var requireModifier = false
     @AppStorage(Preferences.triggerModifierKey) private var triggerModifier: TriggerModifier = .option
     @AppStorage(Preferences.defaultTargetKey) private var defaultTargetID = ""
+    @AppStorage(Preferences.privateWindowsEnabledKey) private var privateWindowsEnabled = false
     @State private var launchAtLogin = false
 
     @State private var draggingID: String?
@@ -31,6 +32,7 @@ struct SettingsView: View {
                         chromeGroup
                     }
                     catalogGroup
+                    privateWindowsGroup
                     behaviorGroup
                     updatesGroup
                     supportGroup
@@ -180,6 +182,53 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    // MARK: Private windows
+
+    /// The Private Windows feature: a master switch, then one opt-in row per
+    /// private-capable target. Variants are derived at discovery (ADR-0001),
+    /// so every toggle just refreshes the catalog.
+    private var privateWindowsGroup: some View {
+        SettingsGroup(title: "Private windows") {
+            SettingsRow(
+                leading: {
+                    Image(systemName: "sunglasses.fill")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(BB.iconSecondary)
+                },
+                label: "Open links in private windows",
+                description: "Add picker entries that open a browser's incognito or private window.",
+                trailing: { BBSwitch(isOn: $privateWindowsEnabled) })
+            if privateWindowsEnabled {
+                ForEach(privateCapableBases) { base in
+                    BBDivider().padding(.leading, 12)
+                    PrivateOptInRow(
+                        base: base,
+                        dialect: PrivateWindow.capability(for: base.bundleID)?.dialect ?? "Private",
+                        enabled: Preferences.privateEnabledTargets.contains(base.id),
+                        onToggle: { togglePrivateVariant(base.id) })
+                }
+            }
+        }
+        .animation(BBMotion.easeOut(BBMotion.panel), value: privateWindowsEnabled)
+        .onChange(of: privateWindowsEnabled) { _, _ in catalog.refresh() }
+    }
+
+    /// Base (non-variant) targets that can open a Private Window, in catalog order.
+    private var privateCapableBases: [LaunchTarget] {
+        catalog.all.filter { !$0.isPrivate && PrivateWindow.capability(for: $0.bundleID) != nil }
+    }
+
+    private func togglePrivateVariant(_ baseID: String) {
+        var enabled = Set(Preferences.privateEnabledTargets)
+        if enabled.contains(baseID) {
+            enabled.remove(baseID)
+        } else {
+            enabled.insert(baseID)
+        }
+        Preferences.privateEnabledTargets = Array(enabled)
+        catalog.refresh()
     }
 
     // MARK: Behavior
@@ -480,18 +529,69 @@ private struct CatalogRow: View {
     }
 
     @ViewBuilder private var leading: some View {
-        if case .chromeProfile = target.kind {
-            ProfileSwatch(name: target.name, colorARGB: target.colorARGB, size: 22)
-        } else {
-            AppIconChip(appURL: target.appURL, size: 22)
+        Group {
+            if case .chromeProfile = target.kind {
+                ProfileSwatch(name: target.name, colorARGB: target.colorARGB, size: 22)
+            } else {
+                AppIconChip(appURL: target.appURL, size: 22)
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if target.isPrivate {
+                PrivateBadge(size: 11)
+                    .offset(x: 2.5, y: 2.5)
+            }
         }
     }
 
     private var subtitle: String {
+        if target.isPrivate {
+            if case .chromeProfile = target.kind {
+                return target.subtitle.map { "Private window · \($0)" } ?? "Private window"
+            }
+            return "Private window"
+        }
         if case .chromeProfile = target.kind {
             return target.subtitle.map { "Chrome · \($0)" } ?? "Chrome profile"
         }
         return "Web browser"
+    }
+}
+
+// MARK: - Private Window opt-in row (switch adds/removes the variant)
+
+private struct PrivateOptInRow: View {
+    let base: LaunchTarget
+    let dialect: String
+    let enabled: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            leading
+            VStack(alignment: .leading, spacing: 1) {
+                Text(base.name)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(BB.textPrimary)
+                    .lineLimit(1)
+                Text("Adds “\(base.name) \(dialect)” to the picker.")
+                    .font(BBFont.caption)
+                    .foregroundStyle(BB.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            Spacer(minLength: 8)
+            BBSwitch(isOn: Binding(get: { enabled }, set: { _ in onToggle() }))
+        }
+        .padding(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 10))
+    }
+
+    @ViewBuilder private var leading: some View {
+        if case .chromeProfile = base.kind {
+            ProfileSwatch(name: base.name, colorARGB: base.colorARGB, size: 22)
+        } else {
+            AppIconChip(appURL: base.appURL, size: 22)
+        }
     }
 }
 
