@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Private windows.** A new **Settings → Private windows** switch adds picker entries that
+  open links in a browser's incognito/private window — per browser and even per Chrome
+  profile ("Work Incognito" opens that profile's incognito window). Supported for Chrome,
+  Chromium, Brave, Edge, Vivaldi, Opera, and Firefox; entries wear a sunglasses badge so a
+  private pick is unmistakable. Safari is not supported (it offers no way to open a private
+  window programmatically).
+
 ## [0.1.5] - 2026-07-06
 
 ### Added

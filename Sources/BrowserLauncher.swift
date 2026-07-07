@@ -16,19 +16,19 @@ enum BrowserLauncher {
         NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.google.Chrome")
     }
 
-    /// Open a URL in Chrome routed to a specific profile directory (e.g. "Profile 1").
+    /// Open a URL by invoking the browser's *binary* directly with launch flags.
     ///
-    /// We invoke the Chrome *binary* directly rather than `NSWorkspace.open`, because
-    /// `--profile-directory` is only honored as a launch argument. Chrome dedupes to
-    /// its running instance, so this opens a tab in the chosen profile whether or not
-    /// Chrome is already open.
+    /// Flags like `--profile-directory` and `--incognito` are only honored as launch
+    /// arguments — `NSWorkspace.open` can't deliver them to a running app. These
+    /// browsers dedupe to their running instance, so this opens the right window
+    /// whether or not the browser is already open (verified live for Chrome and
+    /// Firefox — ADR-0001). The binary comes from the bundle's CFBundleExecutable.
     @discardableResult
-    static func openInChrome(_ url: URL, profileDirectory: String, chromeAppURL: URL? = nil) -> Bool {
-        guard let appURL = chromeAppURL ?? self.chromeAppURL() else { return false }
-        let binary = appURL.appendingPathComponent("Contents/MacOS/Google Chrome")
+    static func open(_ url: URL, withBinaryOfAppAt appURL: URL, flags: [String]) -> Bool {
+        guard let binary = Bundle(url: appURL)?.executableURL else { return false }
         let process = Process()
         process.executableURL = binary
-        process.arguments = ["--profile-directory=\(profileDirectory)", url.absoluteString]
+        process.arguments = flags + [url.absoluteString]
         do {
             try process.run()
             return true
@@ -37,13 +37,20 @@ enum BrowserLauncher {
         }
     }
 
-    /// Launch a resolved target (browser app or Chrome profile) with a URL.
+    /// Launch a resolved target (browser, Chrome profile, or a Private Window
+    /// variant of either) with a URL.
     static func launch(_ target: LaunchTarget, url: URL) {
-        switch target.kind {
-        case .browser:
+        var flags: [String] = []
+        if case .chromeProfile(let directory) = target.kind {
+            flags.append("--profile-directory=\(directory)")
+        }
+        if let privateFlag = target.privateFlag {
+            flags.append(privateFlag)
+        }
+        if flags.isEmpty {
             open(url, withAppAt: target.appURL)
-        case .chromeProfile(let directory):
-            openInChrome(url, profileDirectory: directory, chromeAppURL: target.appURL)
+        } else {
+            open(url, withBinaryOfAppAt: target.appURL, flags: flags)
         }
     }
 }

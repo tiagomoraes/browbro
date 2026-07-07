@@ -32,7 +32,29 @@ enum TargetDiscovery {
         }
     }
 
+    /// Private Window variants of opted-in base targets. Derived, never
+    /// persisted: they exist only while the master switch is on and the base
+    /// target is opted in, so toggling off or uninstalling the browser removes
+    /// them and saved ids dangle harmlessly (ADR-0001).
+    static func privateVariants(of bases: [LaunchTarget]) -> [LaunchTarget] {
+        guard Preferences.privateWindowsEnabled else { return [] }
+        let enabled = Set(Preferences.privateEnabledTargets)
+        return bases.compactMap { base in
+            guard enabled.contains(base.id),
+                  let capability = PrivateWindow.capability(for: base.bundleID) else { return nil }
+            return LaunchTarget(id: "private:\(base.id)",
+                                name: "\(base.name) \(capability.dialect)",
+                                subtitle: base.subtitle,
+                                appURL: base.appURL,
+                                bundleID: base.bundleID,
+                                kind: base.kind,
+                                colorARGB: base.colorARGB,
+                                privateFlag: capability.flag)
+        }
+    }
+
     static func all() -> [LaunchTarget] {
-        browsers() + chromeProfiles()
+        let bases = browsers() + chromeProfiles()
+        return bases + privateVariants(of: bases)
     }
 }

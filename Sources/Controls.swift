@@ -254,6 +254,26 @@ struct AppIconChip: View {
     }
 }
 
+// MARK: - Private Window badge
+// Corner badge over a target's icon or swatch: a privacy pick must be
+// unmistakable at a glance, in the picker and in Settings alike.
+
+struct PrivateBadge: View {
+    var size: CGFloat = 13
+
+    var body: some View {
+        Circle()
+            .fill(Color(white: 0.16))
+            .frame(width: size, height: size)
+            .overlay(
+                Image(systemName: "sunglasses.fill")
+                    .font(.system(size: size * 0.55, weight: .semibold))
+                    .foregroundStyle(.white))
+            .overlay(Circle().strokeBorder(.white.opacity(0.35), lineWidth: BB.hairline))
+            .accessibilityLabel("Private window")
+    }
+}
+
 // MARK: - Hairline divider
 
 struct BBDivider: View {

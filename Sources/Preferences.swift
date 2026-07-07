@@ -54,6 +54,8 @@ enum Preferences {
     static let requireModifierKey = "requireModifierForPicker"
     static let triggerModifierKey = "triggerModifier"
     static let defaultTargetKey = "defaultTargetID"
+    static let privateWindowsEnabledKey = "privateWindowsEnabled"
+    static let privateEnabledTargetsKey = "privateEnabledTargets"
 
     /// Pre-highlight whatever you picked last time.
     static var rememberLast: Bool {
@@ -95,6 +97,20 @@ enum Preferences {
     static var defaultTargetID: String? {
         get { UserDefaults.standard.string(forKey: defaultTargetKey) }
         set { UserDefaults.standard.set(newValue, forKey: defaultTargetKey) }
+    }
+
+    /// Master switch for the Private Windows feature. Off (default) = no
+    /// Private Window variants exist anywhere; per-target opt-ins are kept so
+    /// switching back on restores them.
+    static var privateWindowsEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: privateWindowsEnabledKey) }
+        set { UserDefaults.standard.set(newValue, forKey: privateWindowsEnabledKey) }
+    }
+
+    /// Base-target ids the user opted into a Private Window variant for.
+    static var privateEnabledTargets: [String] {
+        get { UserDefaults.standard.stringArray(forKey: privateEnabledTargetsKey) ?? [] }
+        set { UserDefaults.standard.set(newValue, forKey: privateEnabledTargetsKey) }
     }
 }
 

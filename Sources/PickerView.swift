@@ -149,10 +149,18 @@ struct TargetRowView: View {
     }
 
     @ViewBuilder private var leading: some View {
-        if case .chromeProfile = target.kind {
-            ProfileSwatch(name: target.name, colorARGB: target.colorARGB)
-        } else {
-            AppIconChip(appURL: target.appURL)
+        Group {
+            if case .chromeProfile = target.kind {
+                ProfileSwatch(name: target.name, colorARGB: target.colorARGB)
+            } else {
+                AppIconChip(appURL: target.appURL)
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if target.isPrivate {
+                PrivateBadge()
+                    .offset(x: 3, y: 3)
+            }
         }
     }
 }
