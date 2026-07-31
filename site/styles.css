@@ -11,6 +11,9 @@
    ============================================================================= */
 :root {
   --accent:            #2c6bed;
+  /* Same blue, darkened just enough for small text to clear 4.5:1 on the page
+     and on --accent-weak. --accent stays the fill/large-text colour. */
+  --accent-ink:        #1d55cc;
   --accent-hover:      #2359ce;
   --accent-active:     #1e4fb5;
   --accent-weak:       #e8f0fe;
@@ -23,6 +26,7 @@
   --surface-raised:        #ffffff;
   --surface-sunken:        #ededf0;
   --surface-menu:          rgba(244, 244, 246, 0.80);
+  --surface-menu-solid:    rgba(246, 246, 248, 0.96);
 
   --fill-hover:    rgba(0, 0, 0, 0.055);
   --fill-pressed:  rgba(0, 0, 0, 0.09);
@@ -73,6 +77,7 @@
 
 :root[data-theme="dark"] {
   --accent:        #6699f5;
+  --accent-ink:    #85aff8;
   --accent-hover:  #85aff8;
   --accent-active: #5a8cef;
   --accent-weak:   rgba(102, 153, 245, 0.18);
@@ -85,6 +90,7 @@
   --surface-raised:        #2e2e31;
   --surface-sunken:        #202022;
   --surface-menu:          rgba(40, 40, 43, 0.82);
+  --surface-menu-solid:    rgba(34, 34, 37, 0.97);
 
   --fill-hover:    rgba(255, 255, 255, 0.08);
   --fill-pressed:  rgba(255, 255, 255, 0.12);
@@ -218,6 +224,21 @@
   --dur-fast:     120ms;
   --dur-quick:    90ms;
   --dur-panel:    200ms;
+
+  /* Site motion: the app's curves are tuned for 70–200ms UI snaps. Marketing
+     motion needs longer arcs, so these sit alongside (never replace) them. */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-back:  cubic-bezier(0.34, 1.4, 0.64, 1);
+  --dur-enter:  620ms;
+  --dur-exit:   380ms;   /* exits ~60% of enters, so dismissal feels responsive */
+  --dur-arc:    900ms;
+
+  /* Semantic stacking order — no arbitrary 999s. */
+  --z-art:      0;
+  --z-raised:   1;
+  --z-sticky:   50;
+  --z-overlay:  49;
 }
 
 :root[data-theme="dark"] {
@@ -236,10 +257,18 @@
    ============================================================================= */
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Author `display` declarations outrank the UA's `[hidden] { display: none }`,
+   which would leave a hidden-but-rendered "0" wherever the star count fails to
+   load. Restore the attribute's meaning once, globally. */
+[hidden] { display: none !important; }
+
 html {
   background: #f6f7fb;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  /* `clip` rather than `hidden`: no scroll container, so position:sticky on the
+     nav keeps working and stray decoration can never widen the document. */
+  overflow-x: clip;
 }
 html[data-theme="dark"] { background: #121214; }
 
@@ -250,7 +279,8 @@ body {
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  /* No overflow here: only the first of html/body propagates to the viewport,
+     and a scrollable <body> would strand the sticky nav. html owns the clip. */
 }
 
 a { color: inherit; }
@@ -281,47 +311,103 @@ html[data-theme="dark"] .bb-scene {
 @keyframes bb-loadbar { 0% { width: 0; opacity: 1; } 55% { width: 68%; opacity: 1; } 80% { width: 100%; opacity: 1; } 100% { width: 100%; opacity: 0; } }
 @keyframes bb-fadein  { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
+/* Page-load choreography */
+@keyframes bb-line-up { from { transform: translateY(105%); } to { transform: translateY(0); } }
+@keyframes bb-lift    { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes bb-scene-in{ from { opacity: 0; transform: translateY(26px) scale(0.975); } to { opacity: 1; transform: none; } }
+
 .bb-float { animation: bb-float 6s var(--ease-in-out) infinite; }
 
-/* Scroll reveal */
-.bb-reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out); }
-.bb-reveal.is-in { opacity: 1; transform: none; }
+/* --------------------------------------------------------------------------
+   Scroll reveal.
+   Two deliberate constraints:
+   1. The pre-reveal state is scoped to html.js, so a script-less render ships
+      every section already in place.
+   2. It moves, it never hides. No opacity gate, no clip — if the observer never
+      fires (headless capture, print-to-PDF, a stalled tab) the worst case is
+      content sitting 22px low, not a blank section.
+-------------------------------------------------------------------------- */
+.js .bb-reveal {
+  transform: translateY(22px);
+  transition: transform var(--dur-enter) var(--ease-out-quart);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+.js .bb-reveal--scale { transform: translateY(26px) scale(0.982); }
+/* Sideways entrance only where there's room for it; below the stacking
+   breakpoint an off-axis offset just widens the document. */
+@media (min-width: 901px) {
+  .js .bb-reveal--right { transform: translateY(22px) translateX(26px); }
+}
+.js .bb-reveal.is-in  { transform: none; }
+
+/* On paper nothing scrolls, so nothing may stay hidden waiting to be scrolled to. */
+@media print {
+  .js .bb-reveal, .hero__anim, .line__in {
+    opacity: 1 !important; transform: none !important; animation: none !important;
+    transition: none !important;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .bb-float, .bb-pop { animation: none !important; }
   .bb-demo-body * { animation-duration: 1ms !important; animation-delay: 0ms !important; }
-  .bb-reveal { opacity: 1; transform: none; transition: none; }
+  .js .bb-reveal { transform: none; transition: none; }
+  .hero__anim, .line__in { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .nav, .nav__pill { transition: none; }
 }
 
 /* =============================================================================
    LAYOUT PRIMITIVES
    ============================================================================= */
-.bb-wrap { max-width: 1120px; margin: 0 auto; }
-.bb-pad  { padding-left: 28px; padding-right: 28px; }
+.bb-pad { padding-left: 28px; padding-right: 28px; }
 
 /* Offset in-page anchors so the sticky 60px nav never covers a section head. */
 section[id], #top { scroll-margin-top: 76px; }
 
-.eyebrow {
-  font: var(--weight-semibold) var(--text-sm)/1 var(--font-sans);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 12px;
-}
 .section-head { text-align: center; margin-bottom: 48px; }
 .section-head h2 {
   margin: 0;
   font: var(--weight-bold) clamp(28px, 3.6vw, 42px)/1.08 var(--font-sans);
   letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 .section-head p {
   margin: 12px auto 0; max-width: 48ch;
   font: var(--weight-regular) var(--text-md)/1.5 var(--font-sans);
   color: var(--text-secondary);
+  text-wrap: pretty;
 }
-.kbd-hint { font-family: var(--font-mono); color: var(--text-primary); }
+/* Left/right split head — breaks the centered-everything rhythm. */
+.section-head--split {
+  text-align: left;
+  display: grid; grid-template-columns: 1fr auto;
+  align-items: end; gap: 20px 40px;
+}
+.section-head--split p { margin: 0; max-width: 34ch; text-align: right; }
+
+/* One accented word per heading: emphasis without gradient text. */
+h2 em, h1 em { font-style: normal; color: var(--accent); }
+
+/* Keycaps — the app's own affordance, reused as typography. Kept out of the
+   middle of sentences: inline keycaps drag the line box around and strand a
+   lone ⏎ on the next line. They live in their own row instead. */
+kbd {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 24px; height: 24px; padding: 0 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised); color: var(--text-primary);
+  font: var(--weight-semibold) var(--text-sm)/1 var(--font-sans);
+  box-shadow: inset 0 0 0 0.5px var(--border-hairline), 0 1px 0 var(--separator);
+}
+
+/* Sentence on one line, key row beneath it, both right-aligned to the heading.
+   Flex alignment does the vertical centring — no baseline nudges. */
+.demo-hint {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 12px;
+}
+.demo-hint__text { display: block; }
+.demo-hint__keys { display: inline-flex; align-items: center; gap: 6px; }
 
 /* =============================================================================
    BRAND: Logomark / Wordmark / MenuBarIcon
@@ -337,6 +423,13 @@ section[id], #top { scroll-margin-top: 76px; }
 .wordmark svg { display: block; color: var(--accent); }
 .wordmark--lg { font-size: 24px; gap: 10px; }
 
+/* The bro blinks when you say hello. */
+.wordmark__eye { transform-box: fill-box; transform-origin: center; }
+.nav .wordmark:hover .wordmark__eye { animation: bb-blink 380ms var(--ease-out) both; }
+.nav .wordmark:hover .wordmark__eye--r { animation-delay: 70ms; }
+@keyframes bb-blink { 40% { transform: scaleY(0.12); } 100% { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .nav .wordmark:hover .wordmark__eye { animation: none; } }
+
 .menubar-icon {
   display: inline-flex; align-items: center; justify-content: center;
   width: 22px; height: 20px;
@@ -348,25 +441,96 @@ section[id], #top { scroll-margin-top: 76px; }
    NAV
    ============================================================================= */
 .nav {
-  position: sticky; top: 0; z-index: 50; height: 60px;
+  position: sticky; top: 0; z-index: var(--z-sticky); height: 60px;
   background: var(--surface-menu);
   -webkit-backdrop-filter: var(--blur-menu);
   backdrop-filter: var(--blur-menu);
   box-shadow: inset 0 -0.5px 0 var(--separator);
+  transition: height 260ms var(--ease-out-quart), box-shadow 260ms var(--ease-out);
 }
+/* Condenses once you leave the hero — the page gets more room, the bar stays. */
+.nav.is-scrolled { height: 52px; box-shadow: inset 0 -0.5px 0 var(--separator), var(--shadow-sm); }
 .nav__inner {
   max-width: 1120px; margin: 0 auto; height: 100%;
   padding: 0 28px;
   display: flex; align-items: center; justify-content: space-between; gap: 20px;
 }
-.nav__links { display: flex; align-items: center; gap: 24px; }
+.nav__links { position: relative; display: flex; align-items: center; gap: 4px; }
 .nav__links a {
+  position: relative; z-index: 1;
+  padding: 7px 11px; border-radius: var(--radius-md);
   font: var(--weight-medium) var(--text-md)/1 var(--font-sans);
   color: var(--text-secondary); text-decoration: none;
-  transition: color var(--dur-fast) var(--ease-out);
+  transition: color var(--dur-panel) var(--ease-out);
 }
-.nav__links a:hover { color: var(--text-primary); }
+.nav__links a:hover,
+.nav__links a[aria-current="true"] { color: var(--text-primary); }
+/* One shared pill slides between links instead of six separate underlines. */
+.nav__pill {
+  position: absolute; left: 0; top: 50%; z-index: 0;
+  height: 30px; border-radius: var(--radius-md);
+  background: var(--fill-quiet);
+  opacity: 0; translate: 0 -50%;
+  transition: opacity var(--dur-panel) var(--ease-out),
+              transform 420ms var(--ease-out-quart),
+              width 420ms var(--ease-out-quart);
+  pointer-events: none;
+}
+.nav__pill.is-on { opacity: 1; }
 .nav__right { display: flex; align-items: center; gap: 10px; }
+
+/* Reading progress. Scroll-driven where supported; simply absent where not. */
+.nav__progress {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 45%, transparent));
+  transform: scaleX(0); transform-origin: 0 50%;
+  border-radius: 0 2px 2px 0;
+}
+@supports (animation-timeline: scroll()) {
+  .nav__progress {
+    animation: bb-progress linear both;
+    animation-timeline: scroll(root block);
+  }
+  @keyframes bb-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+}
+
+/* =============================================================================
+   GITHUB STAR COUNTER
+   ============================================================================= */
+.gh-star {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 34px; padding: 0 10px 0 11px;
+  border-radius: var(--radius-md);
+  background: var(--fill-quiet); color: var(--text-primary);
+  box-shadow: inset 0 0 0 0.5px var(--border-hairline);
+  font: var(--weight-semibold) var(--text-md)/1 var(--font-sans);
+  text-decoration: none; white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-out),
+              transform var(--dur-instant) var(--ease-out);
+}
+.gh-star:hover { background: var(--fill-hover); }
+.gh-star:active { transform: scale(0.97); }
+.gh-star__mark { flex: none; }
+.gh-star__count {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding-left: 8px; margin-left: 1px;
+  border-left: 0.5px solid var(--separator);
+  color: var(--text-secondary);
+  font: var(--weight-semibold) var(--text-sm)/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.gh-star__count--plain { border-left: none; padding-left: 0; }
+.gh-star__glyph { color: #e3a008; flex: none; }
+html[data-theme="dark"] .gh-star__glyph { color: #f9ab00; }
+.gh-star:hover .gh-star__glyph { animation: bb-twinkle 520ms var(--ease-out-back) both; }
+@keyframes bb-twinkle {
+  40% { transform: scale(1.28) rotate(16deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+@media (prefers-reduced-motion: reduce) { .gh-star:hover .gh-star__glyph { animation: none; } }
+
+/* Freshly-arrived counts tick up rather than snapping into place. */
+.gh-star__num[data-counting] { color: var(--text-primary); }
 
 .icon-btn {
   width: 34px; height: 34px;
@@ -383,6 +547,8 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
 /* =============================================================================
    BUTTONS
    ============================================================================= */
+/* Hover is a plain darken. No sheen, no pull — a download button should behave
+   like a button, and the page gets its energy from the scenes instead. */
 .btn-accent {
   display: inline-flex; align-items: center; gap: 7px;
   height: 34px; padding: 0 16px;
@@ -391,10 +557,34 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
   font: var(--weight-semibold) var(--text-md)/1 var(--font-sans);
   letter-spacing: -0.01em; text-decoration: none;
   box-shadow: var(--shadow-sm); border: none; cursor: pointer;
-  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+  transition: background var(--dur-fast) var(--ease-out),
+              transform var(--dur-instant) var(--ease-out);
 }
 .btn-accent:hover { background: var(--accent-hover); }
 .btn-accent:active { transform: scale(0.98); }
+
+.btn-star {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 44px; padding: 0 16px;
+  border-radius: var(--radius-md);
+  background: transparent; color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--border-hairline);
+  font: var(--weight-semibold) var(--text-md)/1 var(--font-sans);
+  text-decoration: none; white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+.btn-star:hover { background: var(--fill-hover); box-shadow: inset 0 0 0 1px var(--border-strong); }
+.btn-star__glyph { color: #e3a008; flex: none; }
+html[data-theme="dark"] .btn-star__glyph { color: #f9ab00; }
+.btn-star:hover .btn-star__glyph { animation: bb-twinkle 520ms var(--ease-out-back) both; }
+.btn-star__count {
+  padding: 3px 8px; border-radius: var(--radius-xs);
+  background: var(--fill-quiet); color: var(--text-secondary);
+  font: var(--weight-semibold) var(--text-sm)/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) { .btn-star:hover .btn-star__glyph { animation: none; } }
 
 .btn-accent--lg {
   height: 54px; padding: 0 28px; gap: 11px;
@@ -433,43 +623,156 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
   background: var(--text-primary); color: var(--surface-raised);
   font: var(--weight-semibold) var(--text-md)/1 var(--font-sans);
   text-decoration: none; box-shadow: var(--shadow-sm);
-  transition: opacity var(--dur-fast) var(--ease-out);
+  transition: background var(--dur-fast) var(--ease-out);
 }
-.btn-dark:hover { opacity: 0.88; }
+/* Shift the fill rather than fading the whole button — dropping opacity washes
+   the label out along with the background. */
+.btn-dark:hover { background: color-mix(in srgb, var(--text-primary) 86%, var(--surface-raised)); }
 
 /* =============================================================================
    HERO
    ============================================================================= */
 .hero {
   max-width: 1120px; margin: 0 auto;
-  padding: 88px 28px 48px;
+  padding: 88px 28px 56px;
   display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center;
 }
+
+/* Entrance choreography. Each element carries its own --d, so the hero resolves
+   in one arc instead of eight unrelated fades. */
+.js .hero__anim { animation: bb-lift var(--dur-enter) var(--ease-out-quart) both; animation-delay: var(--d, 0ms); }
+.js .hero__scene.hero__anim { animation-name: bb-scene-in; animation-duration: var(--dur-arc); }
+
 .badge {
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 6px 14px; border-radius: var(--radius-pill);
-  background: var(--accent-weak); color: var(--accent);
+  padding: 6px 14px 6px 11px; border-radius: var(--radius-pill);
+  background: var(--accent-weak); color: var(--accent-ink);
   font: var(--weight-semibold) var(--text-sm)/1 var(--font-sans);
   letter-spacing: 0.02em; white-space: nowrap; margin-bottom: 24px;
 }
+.badge__dot {
+  width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none;
+  animation: bb-pulse-dot 2.6s var(--ease-in-out) infinite;
+}
+@keyframes bb-pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+  55%      { opacity: .55; box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .badge__dot { animation: none; } }
+
 .hero h1 {
   margin: 0;
   font: var(--weight-bold) clamp(40px, 4.6vw, 60px)/1.03 var(--font-sans);
   letter-spacing: -0.03em;
 }
+/* Masked line reveal. The padding/margin pair keeps descenders off the mask. */
+.hero__title .line { display: block; overflow: hidden; padding-bottom: 0.1em; margin-bottom: -0.1em; }
+.hero__title .line__in { display: block; }
+.js .hero__title .line__in {
+  animation: bb-line-up var(--dur-arc) var(--ease-out-expo) both;
+  animation-delay: var(--d, 0ms);
+}
 .hero__sub {
   margin: 22px 0 0; max-width: 46ch;
   font: var(--weight-regular) clamp(16px, 1.4vw, 19px)/1.5 var(--font-sans);
   color: var(--text-secondary);
+  text-wrap: pretty;
 }
 .hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 34px; }
-.hero__fine { margin: 18px 0 0; font: var(--weight-regular) var(--text-sm)/1 var(--font-sans); color: var(--text-tertiary); }
+.hero__fine { margin: 18px 0 0; font: var(--weight-regular) var(--text-sm)/1.5 var(--font-sans); color: var(--text-secondary); }
+.hero__fine a { color: var(--accent-ink); text-decoration: none; }
+.hero__fine a:hover { text-decoration: underline; }
 
 .scene {
   position: relative; border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md); overflow: hidden;
 }
-.hero__scene { min-height: 420px; padding: 22px; }
+.hero__scene { min-height: 460px; padding: 22px; }
+
+/* --------------------------------------------------------------------------
+   THE ROUTING FIELD
+   One click, fanned out into every target. It's the product's whole idea drawn
+   behind the glass — decorative, but never arbitrary.
+-------------------------------------------------------------------------- */
+.routefield {
+  position: absolute; inset: 0; z-index: var(--z-art);
+  width: 100%; height: 100%; pointer-events: none;
+}
+.routefield__lines path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--accent) 48%, transparent);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+html[data-theme="dark"] .routefield__lines path { stroke: color-mix(in srgb, var(--accent) 52%, transparent); }
+.js .routefield__lines path {
+  stroke-dasharray: 700;
+  stroke-dashoffset: 700;
+  animation: bb-draw 1600ms var(--ease-out-expo) both;
+}
+.js .routefield__lines path:nth-child(1) { animation-delay: 460ms; }
+.js .routefield__lines path:nth-child(2) { animation-delay: 580ms; }
+.js .routefield__lines path:nth-child(3) { animation-delay: 700ms; }
+.js .routefield__lines path:nth-child(4) { animation-delay: 820ms; }
+@keyframes bb-draw { to { stroke-dashoffset: 0; } }
+
+.rfdot { fill: var(--accent); opacity: 0; }
+.js .rfdot {
+  offset-rotate: 0deg;
+  animation: bb-travel 4.6s var(--ease-in-out) infinite;
+}
+.rfdot--1 { offset-path: path("M-30 205 C 58 206, 146 188, 224 140"); animation-delay: 1.9s; }
+.rfdot--2 { offset-path: path("M-30 332 C 70 318, 158 232, 224 140"); animation-delay: 0.7s; }
+.rfdot--3 { offset-path: path("M34 476 C 108 402, 180 262, 224 140");  animation-delay: 3.1s; }
+.rfdot--4 { offset-path: path("M148 506 C 176 420, 204 260, 224 140"); animation-delay: 2.3s; }
+/* Dots run start → convergence point: links arriving, not signals broadcast. */
+@keyframes bb-travel {
+  0%        { offset-distance: 0%;   opacity: 0; }
+  10%       { opacity: 0.9; }
+  52%       { opacity: 0.9; }
+  62%, 100% { offset-distance: 100%; opacity: 0; }
+}
+
+.routefield__origin { fill: var(--accent); }
+.routefield__ring {
+  fill: none; stroke: var(--accent); stroke-width: 1.25;
+  transform-box: fill-box; transform-origin: center;
+  opacity: 0.5;
+}
+.js .routefield__ring { animation: bb-ping 3.2s var(--ease-out-quart) infinite; }
+@keyframes bb-ping {
+  0%       { transform: scale(0.5); opacity: 0.7; }
+  70%,100% { transform: scale(2.1); opacity: 0; }
+}
+
+/* A slow drift as the hero leaves, so the art has parallax against the glass. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .routefield {
+      animation: bb-art-drift linear both;
+      animation-timeline: view(block);
+      animation-range: entry 100% exit 100%;
+    }
+    @keyframes bb-art-drift { to { transform: translateY(-34px) scale(1.06); opacity: 0.55; } }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js .routefield__lines path { stroke-dashoffset: 0; animation: none; }
+  .rfdot { display: none; }
+  .js .routefield__ring { animation: none; }
+}
+
+/* Pointer parallax layer. JS moves each child by its own data-depth so the
+   stack reads as real space.
+   Uses the standalone `translate` property, not `transform`, so it composes
+   with the float keyframes on the popover instead of fighting them. */
+.hero__depth { position: absolute; inset: 0; z-index: var(--z-raised); }
+.hero__depth > * {
+  transition: translate 620ms var(--ease-out-quart);
+  will-change: translate;
+}
+.hero__depth.is-tracking > * { transition: translate 160ms linear; }
 
 /* faux window */
 .mac-window { background: var(--surface-raised); border-radius: 12px; box-shadow: var(--shadow-md); overflow: hidden; }
@@ -482,12 +785,16 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
 .traffic--y { background: #febc2e; }
 .traffic--g { background: #28c840; }
 
-.hero__win { position: absolute; top: 44px; left: 36px; width: 58%; }
+.hero__win { position: absolute; top: 40px; left: 28px; width: 54%; }
 .hero__win .body { padding: 16px; }
 .skeleton-line { height: 8px; border-radius: 4px; background: var(--fill-quiet); margin-bottom: 10px; }
 .hero__win .url { font: var(--weight-medium) var(--text-sm)/1.4 var(--font-mono); color: var(--accent); word-break: break-all; }
 
-.hero__pop { position: absolute; right: 20px; bottom: 20px; width: 300px; max-width: 74%; }
+/* Anchored from the top so the routing field keeps its corner of the scene. */
+.hero__pop { position: absolute; right: 16px; top: 140px; width: 300px; max-width: 74%; }
+/* The hero picker is a loop, not an input: the highlight glides between rows
+   instead of snapping the way the real 70ms app selection does. */
+.hero__pop .target-row { transition: background 260ms var(--ease-out-quart); cursor: default; }
 
 /* cursor hand */
 .cursor {
@@ -601,29 +908,142 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
 .switch[aria-checked="true"] .switch__knob { left: 18px; }
 
 /* =============================================================================
-   HOW IT WORKS
+   ROUTES TO — the ticker
+   Real targets, moving. Motion here is content, not decoration: the list is
+   longer than the viewport, so it scrolls itself.
    ============================================================================= */
-.section { max-width: 1120px; margin: 0 auto; }
-#how { padding: 72px 28px; }
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.card {
-  background: var(--surface-raised); border-radius: var(--radius-lg);
-  padding: 28px; box-shadow: inset 0 0 0 0.5px var(--border-hairline), var(--shadow-sm);
+.routes {
+  max-width: 1120px; margin: 0 auto;
+  padding-top: 20px; padding-bottom: 8px;
+  display: flex; align-items: center; gap: 20px;
 }
-.card__top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
-.card__num { font: var(--weight-bold) var(--text-sm)/1 var(--font-mono); color: var(--text-quaternary); }
-.card__icon {
-  width: 44px; height: 44px; border-radius: 12px;
-  background: var(--accent-weak); color: var(--accent);
-  display: flex; align-items: center; justify-content: center;
+.routes__label {
+  flex: none;
+  font: var(--weight-semibold) var(--text-sm)/1 var(--font-sans);
+  color: var(--text-secondary); white-space: nowrap;
 }
-.card h3 { margin: 0 0 8px; font: var(--weight-semibold) var(--text-xl)/1.2 var(--font-sans); letter-spacing: -0.01em; }
-.card p  { margin: 0; font: var(--weight-regular) var(--text-md)/1.5 var(--font-sans); color: var(--text-secondary); }
+.ticker {
+  flex: 1; min-width: 0; display: flex; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.ticker__track {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0; padding: 4px 5px 4px 0; list-style: none;
+  flex: none; min-width: 100%;
+  animation: bb-ticker 46s linear infinite;
+}
+.ticker:hover .ticker__track,
+.ticker:focus-within .ticker__track { animation-play-state: paused; }
+@keyframes bb-ticker { to { transform: translateX(-100%); } }
+.ticker__item {
+  padding: 6px 13px; border-radius: var(--radius-pill); white-space: nowrap;
+  background: var(--fill-quiet); color: var(--text-secondary);
+  box-shadow: inset 0 0 0 0.5px var(--border-hairline);
+  font: var(--weight-medium) var(--text-sm)/1 var(--font-sans);
+}
+.ticker__item--accent {
+  background: var(--accent-weak); color: var(--accent-ink);
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--accent) 28%, transparent);
+  font-weight: var(--weight-semibold);
+}
+.ticker__item--muted { background: transparent; box-shadow: none; color: var(--text-tertiary); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker__track { animation: none; }
+  .ticker__track:nth-child(2) { display: none; }
+  .ticker { -webkit-mask-image: linear-gradient(90deg, #000 92%, transparent); mask-image: linear-gradient(90deg, #000 92%, transparent); }
+}
+
+/* =============================================================================
+   HOW IT WORKS — the route
+   Three beats on one conduit, not three identical cards. The rail fills and a
+   pulse runs it, which is exactly what the app does with your click.
+   ============================================================================= */
+#how { max-width: 1120px; margin: 0 auto; padding: 64px 28px 72px; }
+
+.route { --route-gap: 40px; position: relative; }
+/* The rail runs from the first node's centre to the last node's centre, so it
+   reads as one conduit with three stations rather than a decorative underline. */
+.route__rail {
+  position: absolute; z-index: 0;
+  left: 24px; top: 23px; height: 2px;
+  right: calc((100% - 2 * var(--route-gap)) / 3 - 24px);
+  border-radius: 2px;
+  background: var(--separator);
+  overflow: hidden;
+}
+.route__rail-fill {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--accent) 55%, transparent),
+    var(--accent));
+  transform: scaleX(0); transform-origin: 0 50%;
+  transition: transform 1400ms var(--ease-out-expo) 180ms;
+}
+.bb-reveal.is-in .route__rail-fill,
+html:not(.js) .route__rail-fill { transform: scaleX(1); }
+
+.route__pulse {
+  position: absolute; top: -2px; left: 0;
+  width: 52px; height: 6px; border-radius: 6px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+}
+.bb-reveal.is-in .route__pulse { animation: bb-rail-pulse 3.6s var(--ease-in-out) 1.5s infinite; }
+@keyframes bb-rail-pulse {
+  0%       { left: -52px; opacity: 0; }
+  12%      { opacity: 0.95; }
+  70%      { opacity: 0.95; }
+  85%,100% { left: 100%; opacity: 0; }
+}
+
+.route__steps {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 20px var(--route-gap);
+  margin: 0; padding: 0; list-style: none;
+  counter-reset: route;
+}
+.route__step { position: relative; counter-increment: route; }
+.route__node {
+  position: relative; z-index: 1;   /* connectors tuck under the node */
+  width: 48px; height: 48px; border-radius: 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-raised); color: var(--accent);
+  box-shadow: inset 0 0 0 0.5px var(--border-hairline), var(--shadow-sm);
+  margin-bottom: 20px;
+  transition: transform 520ms var(--ease-out-back), color var(--dur-panel) var(--ease-out);
+}
+/* The raised surface is light enough in dark mode that base accent drops under
+   the 3:1 glyph floor; step up one stop. */
+html[data-theme="dark"] .route__node { color: var(--accent-hover); }
+.js .bb-reveal:not(.is-in) .route__node { transform: scale(0.6); }
+.bb-reveal.is-in .route__node { transition-delay: calc(320ms + var(--i) * 260ms); }
+/* The step number rides the node as a badge — an actual sequence, marked once. */
+.route__node::after {
+  content: counter(route, decimal-leading-zero);
+  position: absolute; right: -7px; top: -7px;
+  min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: var(--radius-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent-fill); color: var(--on-accent);
+  font: var(--weight-bold) var(--text-2xs)/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.route__step h3 { margin: 0 0 8px; font: var(--weight-semibold) var(--text-xl)/1.2 var(--font-sans); letter-spacing: -0.01em; }
+.route__step p  { margin: 0; max-width: 34ch; font: var(--weight-regular) var(--text-md)/1.55 var(--font-sans); color: var(--text-secondary); text-wrap: pretty; }
+
+@media (prefers-reduced-motion: reduce) {
+  .route__rail-fill { transition: none; transform: scaleX(1); }
+  .bb-reveal.is-in .route__pulse { animation: none; }
+  .js .bb-reveal:not(.is-in) .route__node { transform: none; }
+}
 
 /* =============================================================================
    DEMO
    ============================================================================= */
-#demo { padding: 56px 28px 72px; }
+#demo { max-width: 1120px; margin: 0 auto; padding: 56px 28px 72px; }
 .demo-scene { min-height: 640px; }
 .demo-menubar {
   height: 28px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px;
@@ -648,10 +1068,28 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
 }
 .bubble--first { border-radius: 14px 14px 14px 4px; max-width: 80%; }
 .msg-link {
-  color: var(--accent); font-family: var(--font-mono); font-size: var(--text-sm);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  position: relative;
+  color: var(--accent-ink); font-family: var(--font-mono); font-size: var(--text-sm);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-ink) 45%, transparent);
   cursor: pointer;
+  border-radius: 2px;
+  transition: background var(--dur-fast) var(--ease-out);
 }
+.msg-link:hover { background: var(--accent-weak); }
+/* A slow halo that says "this one is clickable" without a tooltip. */
+.msg-link::after {
+  content: ""; position: absolute; inset: -3px -5px; border-radius: var(--radius-xs);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
+  animation: bb-link-hint 3.4s var(--ease-out-quart) infinite;
+  pointer-events: none;
+}
+@keyframes bb-link-hint {
+  0%, 62% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  80%     { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent); }
+  100%    { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
+}
+.msg-link:hover::after { animation: none; }
+@media (prefers-reduced-motion: reduce) { .msg-link::after { animation: none; } }
 
 .bb-demo-anchor { position: absolute; top: 168px; left: 236px; }
 .demo-pop { width: 360px; }
@@ -685,9 +1123,9 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
 /* =============================================================================
    CUSTOMIZE
    ============================================================================= */
-#customize { padding: 24px 28px 72px; }
-.grid-2 { display: grid; grid-template-columns: 0.92fr 1.08fr; gap: 48px; align-items: start; }
-.grid-2 h2 { margin: 0 0 14px; font: var(--weight-bold) clamp(28px, 3.2vw, 40px)/1.08 var(--font-sans); letter-spacing: -0.02em; }
+#customize { max-width: 1120px; margin: 0 auto; padding: 24px 28px 72px; }
+.grid-2 { display: grid; grid-template-columns: 0.92fr 1.08fr; gap: 48px; align-items: center; }
+.grid-2 h2 { margin: 0 0 14px; font: var(--weight-bold) clamp(28px, 3.2vw, 40px)/1.08 var(--font-sans); letter-spacing: -0.02em; text-wrap: balance; }
 .lede { margin: 0 0 26px; font: var(--weight-regular) var(--text-md)/1.55 var(--font-sans); color: var(--text-secondary); max-width: 46ch; }
 .checklist { display: flex; flex-direction: column; gap: 16px; }
 .check-item { display: flex; align-items: flex-start; gap: 12px; }
@@ -709,7 +1147,9 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
 .settings-body { padding: 14px 16px 18px; }
 .settings-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px 6px; }
 .settings-head .lbl { font: var(--weight-semibold) var(--text-xs)/1 var(--font-sans); text-transform: uppercase; letter-spacing: var(--tracking-label); white-space: nowrap; color: var(--text-tertiary); }
-.settings-head .hint { font: var(--weight-regular) var(--text-xs)/1 var(--font-sans); white-space: nowrap; color: var(--text-quaternary); }
+/* App-chrome microcopy inside the facsimile. Kept on the app's own label ramp;
+   the same instruction is spelled out in accessible prose beside the window. */
+.settings-head .hint { font: var(--weight-regular) var(--text-xs)/1 var(--font-sans); white-space: nowrap; color: var(--text-tertiary); }
 .settings-list { background: var(--surface-sunken); border-radius: var(--radius-md); overflow: hidden; }
 .settings-row {
   display: flex; align-items: center; gap: 10px; padding: 9px 10px;
@@ -728,14 +1168,15 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
 /* =============================================================================
    OPEN SOURCE
    ============================================================================= */
-#github { padding: 24px 28px 72px; }
+#github { max-width: 1120px; margin: 0 auto; padding: 24px 28px 72px; }
 .oss {
   background: var(--surface-raised); border-radius: var(--radius-xl);
   box-shadow: inset 0 0 0 0.5px var(--border-hairline), var(--shadow-md);
   overflow: hidden; display: grid; grid-template-columns: 1fr 1fr;
 }
 .oss__left { padding: 44px; }
-.oss__left h2 { margin: 0 0 14px; font: var(--weight-bold) clamp(26px, 3vw, 36px)/1.1 var(--font-sans); letter-spacing: -0.02em; }
+.oss__left h2 { margin: 0 0 14px; font: var(--weight-bold) clamp(26px, 3vw, 36px)/1.1 var(--font-sans); letter-spacing: -0.02em; text-wrap: balance; }
+.oss__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .oss__left p { margin: 0 0 24px; font: var(--weight-regular) var(--text-md)/1.55 var(--font-sans); color: var(--text-secondary); max-width: 44ch; }
 .oss__left .mono { font-family: var(--font-mono); color: var(--text-primary); }
 .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 28px; }
@@ -748,7 +1189,7 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
 .terminal { width: 100%; background: #1d1d1f; border-radius: 12px; box-shadow: var(--shadow-md); overflow: hidden; }
 .terminal .titlebar { height: 34px; padding: 0 12px; background: rgba(255,255,255,0.05); box-shadow: none; }
 .terminal .body { padding: 18px; font: var(--weight-regular) var(--text-sm)/1.9 var(--font-mono); color: #e5e5ea; overflow-x: auto; }
-.terminal .comment { color: #7c7c82; }
+.terminal .comment { color: #9a9aa0; }   /* 5.6:1 on #1d1d1f — comments stay readable */
 .terminal .cmd { color: #6699f5; }
 .terminal .str { color: #30d158; }
 .terminal .spacer { height: 10px; }
@@ -761,16 +1202,42 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
 .faq-item {
   background: var(--surface-raised); border-radius: var(--radius-lg);
   box-shadow: inset 0 0 0 0.5px var(--border-hairline), var(--shadow-sm); overflow: hidden;
+  transition: box-shadow var(--dur-panel) var(--ease-out);
 }
+.faq-item.is-open { box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--accent) 32%, transparent), var(--shadow-sm); }
 .faq-q {
   width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 18px 20px; background: transparent; border: none; cursor: pointer; text-align: left;
+  transition: background var(--dur-fast) var(--ease-out);
 }
+.faq-q:hover { background: var(--fill-quiet); }
 .faq-q span.q { font: var(--weight-semibold) var(--text-lg)/1.3 var(--font-sans); color: var(--text-primary); letter-spacing: -0.01em; }
-.faq-chevron { flex: none; color: var(--text-tertiary); transition: transform var(--dur-panel) var(--ease-out); transform: rotate(0deg); }
-.faq-item.is-open .faq-chevron { transform: rotate(90deg); }
-.faq-a { display: none; padding: 0 20px 20px; font: var(--weight-regular) var(--text-md)/1.55 var(--font-sans); color: var(--text-secondary); max-width: 62ch; }
-.faq-item.is-open .faq-a { display: block; }
+.faq-chevron { flex: none; color: var(--text-tertiary); transition: transform 320ms var(--ease-out-quart), color var(--dur-panel) var(--ease-out); transform: rotate(0deg); }
+.faq-item.is-open .faq-chevron { transform: rotate(90deg); color: var(--accent); }
+/* 0fr → 1fr so the answer actually slides open instead of snapping. */
+.faq-a {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows 340ms var(--ease-out-quart);
+}
+.faq-a__in {
+  overflow: hidden;
+  font: var(--weight-regular) var(--text-md)/1.55 var(--font-sans);
+  color: var(--text-secondary); max-width: 62ch;
+  opacity: 0; transition: opacity 200ms var(--ease-out);
+}
+.faq-a__in > * { margin: 0; }
+.faq-item.is-open .faq-a { grid-template-rows: 1fr; }
+.faq-item.is-open .faq-a__in { opacity: 1; transition-delay: 90ms; }
+/* Padding lives on an inner shim so the collapsed height is genuinely zero. */
+.faq-a__in::before { content: ""; display: block; height: 2px; }
+.faq-a__in::after  { content: ""; display: block; height: 20px; }
+.faq-a__in { padding-left: 20px; padding-right: 20px; }
+.faq-a__in a { color: var(--accent-ink); text-decoration: none; }
+.faq-a__in a:hover { text-decoration: underline; }
+@media (prefers-reduced-motion: reduce) {
+  .faq-a { transition: none; }
+  .faq-a__in { transition: none; }
+}
 
 /* =============================================================================
    SUPPORT / DONATE
@@ -815,8 +1282,11 @@ html[data-theme="dark"] .icon-btn .icon-moon { display: inline; }
   text-decoration: none; cursor: pointer;
   transition: background var(--dur-instant) var(--ease-out);
 }
-/* Hover/focus = the app's selection state: the row fills with accent. */
-.support-row:hover, .support-row:focus-visible { background: var(--accent-fill); outline: none; }
+/* Hover/focus = the app's selection state: the row fills with accent. Keyboard
+   focus keeps a ring on top of the fill — the fill alone is indistinguishable
+   from hover, and a keyboard user has no pointer to correlate it with. */
+.support-row:hover, .support-row:focus-visible { background: var(--accent-fill); }
+.support-row:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 
 .support-row__ico {
   flex: none; width: 34px; height: 34px; border-radius: 9px;
@@ -835,13 +1305,30 @@ html[data-theme="dark"] .support-row__ico--star   { background: #443823; color: 
 .support-row__name   { font: var(--weight-semibold) var(--text-lg)/1.25 var(--font-sans); color: var(--text-primary); letter-spacing: -0.01em; }
 .support-row__detail { font: var(--weight-regular) var(--text-base)/1.35 var(--font-sans); color: var(--text-secondary); }
 .support-row:hover .support-row__name,   .support-row:focus-visible .support-row__name   { color: var(--on-accent); }
-.support-row:hover .support-row__detail, .support-row:focus-visible .support-row__detail { color: rgba(255, 255, 255, 0.9); }
+.support-row:hover .support-row__detail, .support-row:focus-visible .support-row__detail { color: #ffffff; }
 .support-row:hover .keycap, .support-row:focus-visible .keycap {
   background: rgba(255, 255, 255, 0.22); color: #ffffff;
   box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.28);
 }
 
-.support__fine { margin: 24px 0 0; font: var(--weight-regular) var(--text-sm)/1.4 var(--font-sans); color: var(--text-tertiary); }
+/* Live star count riding the free option, so "free" carries real weight. */
+.star-chip {
+  flex: none; display: inline-flex; align-items: center; gap: 4px;
+  height: 19px; padding: 0 7px; border-radius: var(--radius-xs);
+  background: var(--fill-quiet); color: var(--text-secondary);
+  box-shadow: inset 0 0 0 0.5px var(--border-hairline);
+  font: var(--weight-semibold) var(--text-xs)/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.star-chip svg { color: #e3a008; }
+html[data-theme="dark"] .star-chip svg { color: #f9ab00; }
+.support-row:hover .star-chip, .support-row:focus-visible .star-chip {
+  background: rgba(255,255,255,0.22); color: #ffffff;
+  box-shadow: inset 0 0 0 0.5px rgba(255,255,255,0.28);
+}
+.support-row:hover .star-chip svg, .support-row:focus-visible .star-chip svg { color: #ffd84d; }
+
+.support__fine { margin: 24px 0 0; font: var(--weight-regular) var(--text-sm)/1.4 var(--font-sans); color: var(--text-secondary); }
 
 /* =============================================================================
    FOOTER
@@ -855,10 +1342,41 @@ html[data-theme="dark"] .support-row__ico--star   { background: #443823; color: 
 .footer__brand { max-width: 38ch; }
 .footer__brand p { margin: 14px 0 0; font: var(--weight-regular) var(--text-md)/1.5 var(--font-sans); color: var(--text-secondary); }
 .footer__bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-top: 24px; }
-.footer__copy { font: var(--weight-regular) var(--text-sm)/1 var(--font-sans); color: var(--text-tertiary); }
+.footer__copy { font: var(--weight-regular) var(--text-sm)/1 var(--font-sans); color: var(--text-secondary); }
 .footer__links { display: flex; align-items: center; gap: 22px; }
 .footer__links a { font: var(--weight-medium) var(--text-sm)/1 var(--font-sans); color: var(--text-secondary); text-decoration: none; transition: color var(--dur-fast) var(--ease-out); }
 .footer__links a:hover { color: var(--text-primary); }
+
+/* Byline. Quiet by default, but the underline is drawn, not defaulted. */
+.footer__credit {
+  margin: 22px 0 0;
+  font: var(--weight-regular) var(--text-sm)/1.5 var(--font-sans);
+  color: var(--text-secondary);
+}
+.credit-link {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 3px;
+  color: var(--text-primary); text-decoration: none;
+  font-weight: var(--weight-semibold);
+}
+.credit-link svg {
+  translate: 0 0; opacity: 0.55;
+  transition: translate 300ms var(--ease-out-quart), opacity 300ms var(--ease-out);
+}
+.credit-link::after {
+  content: ""; position: absolute; left: 0; right: 14px; bottom: -2px; height: 1.5px;
+  background: var(--accent); border-radius: 2px;
+  transform: scaleX(0); transform-origin: 100% 50%;
+  transition: transform 380ms var(--ease-out-quart);
+}
+.credit-link:hover { color: var(--accent); }
+.credit-link:hover::after,
+.credit-link:focus-visible::after { transform: scaleX(1); transform-origin: 0 50%; }
+.credit-link:hover svg { translate: 2px -2px; opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .credit-link::after { transition: none; }
+  .credit-link:hover svg { translate: 0 0; }
+}
 
 /* =============================================================================
    RESPONSIVE
@@ -869,7 +1387,7 @@ html[data-theme="dark"] .support-row__ico--star   { background: #443823; color: 
    scroll on mobile. */
 .hero > *,
 .grid-2 > *,
-.grid-3 > *,
+.route__steps > *,
 .oss > *,
 .footer__top > *,
 .hero__actions > * { min-width: 0; }
@@ -888,9 +1406,10 @@ html[data-theme="dark"] .support-row__ico--star   { background: #443823; color: 
   .nav__links { display: none; }
   .nav-burger { display: inline-flex; }
   .nav-menu {
-    display: block; position: fixed; left: 0; right: 0; top: 60px; z-index: 49;
+    display: block; position: fixed; left: 0; right: 0; top: 60px; z-index: var(--z-overlay);
     padding: 6px 20px 14px;
-    background: var(--surface-menu);
+    /* Near-opaque even with the blur: a menu you read words through is a bug. */
+    background: var(--surface-menu-solid);
     -webkit-backdrop-filter: var(--blur-menu); backdrop-filter: var(--blur-menu);
     box-shadow: inset 0 -0.5px 0 var(--separator), var(--shadow-md);
     max-height: calc(100dvh - 60px); overflow-y: auto;
@@ -914,35 +1433,87 @@ html[data-theme="dark"] .support-row__ico--star   { background: #443823; color: 
   .nav-menu a:active { color: var(--accent); }
 }
 
+/* The star pill loses its word label before it loses the count. */
+@media (max-width: 1080px) {
+  .nav__links { gap: 0; }
+  .nav__links a { padding: 7px 9px; }
+  .gh-star__label { display: none; }
+  .gh-star { padding: 0 10px; }
+  .gh-star__count { border-left: none; padding-left: 0; }
+}
+
 @media (max-width: 900px) {
+  .nav__links { display: none; }
   .hero { grid-template-columns: 1fr; padding-top: 40px; gap: 36px; }
-  .grid-3 { grid-template-columns: 1fr; }
   .grid-2 { grid-template-columns: 1fr; }
   .oss { grid-template-columns: 1fr; }
   .bb-pad { padding-left: 20px; padding-right: 20px; }
+  .section-head--split { grid-template-columns: 1fr; align-items: start; }
+  .section-head--split p { text-align: left; max-width: 46ch; }
+  .demo-hint { align-items: flex-start; }
+
+  /* The route turns vertical: one node per row, connected top to bottom. */
+  .route__rail { display: none; }
+  .route__steps { grid-template-columns: 1fr; gap: 30px; }
+  .route__step { padding-left: 68px; }
+  .route__node { position: absolute; left: 0; top: 0; margin-bottom: 0; }
+  .route__step:not(:last-child)::before {
+    content: ""; position: absolute; z-index: 0;
+    left: 23px; top: 56px; bottom: -38px; width: 2px;
+    border-radius: 2px; background: var(--separator);
+  }
+  .route__step:not(:last-child)::after {
+    content: ""; position: absolute; z-index: 0;
+    left: 23px; top: 56px; bottom: -38px; width: 2px;
+    border-radius: 2px; background: var(--accent);
+    transform: scaleY(0); transform-origin: 50% 0;
+    transition: transform 700ms var(--ease-out-quart);
+    transition-delay: calc(420ms + var(--i) * 260ms);
+  }
+  .bb-reveal.is-in .route__step:not(:last-child)::after,
+  html:not(.js) .route__step:not(:last-child)::after { transform: scaleY(1); }
+  .route__step p { max-width: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .route__step:not(:last-child)::after { transform: scaleY(1); transition: none; }
+  }
 }
+
 @media (max-width: 600px) {
-  /* Compact nav so the wordmark, theme, CTA and burger fit down to 320px. */
+  /* Compact nav so the wordmark, star, theme, CTA and burger fit down to 320px. */
   .nav__inner { padding: 0 14px; gap: 8px; }
   .nav__right { gap: 4px; }
   .nav__right .btn-accent { padding: 0 12px; }
+  .nav__right .gh-star { display: none; }
   .wordmark { font-size: 20px; }
 
   /* ID-scoped section padding wins over .bb-pad; bring it down to match. */
-  #how, #demo, #customize, #github, #support, #faq { padding-left: 20px; padding-right: 20px; }
+  #how, #demo, #customize, #github, #support, #faq, .routes { padding-left: 20px; padding-right: 20px; }
+
+  .routes { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .routes__label { padding-left: 2px; }
+  .ticker { width: 100%; }
 
   .support { padding: 40px 22px 36px; }
 
   .hero { padding-left: 20px; padding-right: 20px; }
-  .hero__scene { min-height: 300px; padding: 16px; }
+  .hero__scene { min-height: 320px; padding: 16px; }
   .hero__actions { flex-direction: column; align-items: stretch; gap: 12px; }
   .hero__actions .btn-accent--lg { justify-content: center; }
   .btn-brew { width: 100%; }
 
+  /* 640px is tuned for the desktop launch window; on a phone it's dead space. */
+  .demo-scene { min-height: 440px; }
   .bb-demo-body { padding: 16px; }
   .bb-demo-anchor { left: 12px; right: 12px; top: 82px; }
   .bb-demo-anchor > .demo-pop { width: auto; }
   .bb-panel-pad { padding: 28px; }
   .bb-hide-sm { display: none; }
   .oss__left, .oss__right { padding: 28px; }
+  .oss__actions .btn-dark, .oss__actions .btn-star { flex: 1 1 auto; justify-content: center; }
 }
+
+/* =============================================================================
+   MOBILE NAV: GitHub row with the live count
+   ============================================================================= */
+.nav-menu a.nav-menu__gh { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
