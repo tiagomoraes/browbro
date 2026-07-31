@@ -196,14 +196,167 @@
   })();
 
   /* =========================================================================
-     HERO: static decorative picker rows (Personal preselected)
+     GITHUB STAR COUNTER
+     One fetch, cached for an hour in localStorage so a reload never burns a
+     request against the 60/hour unauthenticated limit. The count ticks up on
+     first paint; every placeholder on the page shares this one result.
+  ========================================================================= */
+  (function () {
+    var REPO = 'tiagomoraes/browbro';
+    var CACHE_KEY = 'bb-gh-stars';
+    var TTL = 60 * 60 * 1000;         // 1 hour
+
+    var wraps = Array.prototype.slice.call(document.querySelectorAll('[data-gh-count]'));
+    if (!wraps.length) return;
+    var nums = Array.prototype.slice.call(document.querySelectorAll('[data-gh-num]'));
+
+    function format(n) {
+      return n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k'
+                       : String(n);
+    }
+
+    function paint(n, animate) {
+      wraps.forEach(function (w) { w.hidden = false; });
+      if (!animate || reduceMotion || n > 5000) {
+        nums.forEach(function (el) { el.textContent = format(n); });
+        return;
+      }
+      // Count up: short, eased, and capped so big numbers never crawl.
+      var dur = Math.min(1100, 320 + n * 12);
+      var t0 = null;
+      nums.forEach(function (el) { el.setAttribute('data-counting', ''); });
+      function frame(ts) {
+        if (t0 === null) t0 = ts;
+        var p = Math.min(1, (ts - t0) / dur);
+        var eased = 1 - Math.pow(1 - p, 4);      // ease-out-quart
+        var v = Math.round(n * eased);
+        nums.forEach(function (el) { el.textContent = format(v); });
+        if (p < 1) requestAnimationFrame(frame);
+        else nums.forEach(function (el) { el.removeAttribute('data-counting'); });
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function readCache() {
+      try {
+        var raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        var c = JSON.parse(raw);
+        if (typeof c.n !== 'number' || !c.t) return null;
+        return c;
+      } catch (e) { return null; }
+    }
+
+    var cached = readCache();
+    if (cached) paint(cached.n, true);
+
+    // Cache still warm? Don't hit the network at all.
+    if (cached && Date.now() - cached.t < TTL) return;
+
+    fetch('https://api.github.com/repos/' + REPO, {
+      headers: { Accept: 'application/vnd.github+json' }
+    })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (d) {
+        var n = d && d.stargazers_count;
+        if (typeof n !== 'number') return;
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ n: n, t: Date.now() })); } catch (e) {}
+        paint(n, !cached || cached.n !== n);
+      })
+      .catch(function () {
+        // Offline, rate-limited, or blocked: the link still works, the count
+        // just stays hidden (or keeps whatever we last cached).
+      });
+  })();
+
+  /* =========================================================================
+     HERO: the picker, alive
+     The selection drifts down the list the way a real one does under the
+     arrow keys. Pauses on hover/focus and while offscreen.
   ========================================================================= */
   (function () {
     var host = document.getElementById('hero-rows');
     if (!host) return;
-    TARGETS.forEach(function (t, i) {
-      host.appendChild(targetRow(t, { selected: i === 0 }));
+
+    var rows = TARGETS.map(function (t, i) {
+      var r = targetRow(t, { selected: i === 0 });
+      r.setAttribute('tabindex', '-1');       // decorative: not a tab stop
+      r.setAttribute('aria-hidden', 'true');
+      host.appendChild(r);
+      return r;
     });
+
+    if (reduceMotion) return;
+
+    var sel = 0, timer = null, visible = false, hovered = false;
+    var pop = document.querySelector('.hero__pop');
+
+    function step() {
+      rows[sel].classList.remove('is-selected');
+      rows[sel].setAttribute('aria-selected', 'false');
+      sel = (sel + 1) % rows.length;
+      rows[sel].classList.add('is-selected');
+      rows[sel].setAttribute('aria-selected', 'true');
+    }
+    function tick() { if (visible && !hovered) step(); }
+    // Slow on purpose: the fold already carries the routing field, the float and
+    // the ticker. This should read as a pulse, not a strobe.
+    function start() { if (!timer) timer = setInterval(tick, 2400); }
+    function stop() { clearInterval(timer); timer = null; }
+
+    if (pop) {
+      pop.addEventListener('pointerenter', function () { hovered = true; });
+      pop.addEventListener('pointerleave', function () { hovered = false; });
+    }
+
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          visible = en.isIntersecting;
+          if (visible) start(); else stop();
+        });
+      }, { threshold: 0.2 });
+      io.observe(host);
+    } else {
+      visible = true; start();
+    }
+  })();
+
+  /* =========================================================================
+     HERO: pointer parallax
+     Each layer moves by its own depth so the window, the popover and the
+     routing field read as three planes instead of one flat picture.
+  ========================================================================= */
+  (function () {
+    var scene = document.getElementById('hero-scene');
+    var depth = document.getElementById('hero-depth');
+    if (!scene || !depth || reduceMotion) return;
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+    var layers = Array.prototype.slice.call(depth.children);
+    var raf = null, mx = 0, my = 0;
+
+    function apply() {
+      raf = null;
+      layers.forEach(function (l) {
+        var d = parseFloat(l.getAttribute('data-depth')) || 0;
+        l.style.translate = (mx * 14 * d).toFixed(2) + 'px ' + (my * 10 * d).toFixed(2) + 'px';
+      });
+    }
+
+    scene.addEventListener('pointermove', function (e) {
+      var r = scene.getBoundingClientRect();
+      mx = ((e.clientX - r.left) / r.width) * 2 - 1;
+      my = ((e.clientY - r.top) / r.height) * 2 - 1;
+      depth.classList.add('is-tracking');
+      if (!raf) raf = requestAnimationFrame(apply);
+    }, { passive: true });
+
+    scene.addEventListener('pointerleave', function () {
+      mx = 0; my = 0;
+      depth.classList.remove('is-tracking');
+      if (!raf) raf = requestAnimationFrame(apply);
+    }, { passive: true });
   })();
 
   /* =========================================================================
@@ -526,14 +679,92 @@
   })();
 
   /* =========================================================================
+     NAV: condensed state + the pill that follows the section you're reading
+  ========================================================================= */
+  (function () {
+    var nav = document.getElementById('site-nav');
+    var links = document.getElementById('nav-links');
+    if (!nav) return;
+
+    /* --- condense once the hero is behind you --- */
+    var ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        nav.classList.toggle('is-scrolled', window.scrollY > 24);
+        ticking = false;
+      });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    if (!links) return;
+    var pill = links.querySelector('.nav__pill');
+    var anchors = Array.prototype.slice.call(links.querySelectorAll('a[href^="#"]'));
+    if (!pill || !anchors.length) return;
+
+    var current = null;
+    function moveTo(a) {
+      if (!a) { pill.classList.remove('is-on'); return; }
+      pill.style.width = a.offsetWidth + 'px';
+      pill.style.transform = 'translateX(' + a.offsetLeft + 'px)';
+      pill.classList.add('is-on');
+    }
+    function setCurrent(a) {
+      if (a === current) return;
+      current = a;
+      anchors.forEach(function (x) {
+        if (x === a) x.setAttribute('aria-current', 'true');
+        else x.removeAttribute('aria-current');
+      });
+      moveTo(a);
+    }
+
+    /* --- which section owns the viewport right now --- */
+    if ('IntersectionObserver' in window) {
+      var byId = {};
+      anchors.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
+      var seen = {};
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) { seen[en.target.id] = en.intersectionRatio; });
+        var bestId = null, best = 0;
+        Object.keys(seen).forEach(function (id) {
+          if (seen[id] > best) { best = seen[id]; bestId = id; }
+        });
+        setCurrent(best > 0.08 ? byId[bestId] : null);
+      }, { threshold: [0, 0.1, 0.25, 0.5, 0.75, 1], rootMargin: '-25% 0px -45% 0px' });
+
+      Object.keys(byId).forEach(function (id) {
+        var s = document.getElementById(id);
+        if (s) io.observe(s);
+      });
+    }
+
+    /* --- hover previews the pill, leaving snaps it back --- */
+    anchors.forEach(function (a) {
+      a.addEventListener('pointerenter', function () { moveTo(a); });
+    });
+    links.addEventListener('pointerleave', function () { moveTo(current); });
+
+    // Fonts land after first layout; re-measure so the pill isn't off by a few px.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () { moveTo(current); });
+    }
+    window.addEventListener('resize', function () { moveTo(current); }, { passive: true });
+  })();
+
+  /* =========================================================================
      Footer year + scroll reveal
+     Reveals only ever *add* visibility; the hidden state is gated behind
+     html.js so a JS-less or headless render ships every section visible.
   ========================================================================= */
   (function () {
     var y = document.getElementById('year');
     if (y) y.textContent = String(new Date().getFullYear());
 
     var reveals = Array.prototype.slice.call(document.querySelectorAll('.bb-reveal'));
-    if (reduceMotion || !('IntersectionObserver' in window)) {
+    if (!('IntersectionObserver' in window)) {
       reveals.forEach(function (r) { r.classList.add('is-in'); });
       return;
     }
@@ -541,8 +772,26 @@
       entries.forEach(function (en) {
         if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); }
       });
-    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    }, { threshold: 0.08, rootMargin: '0px 0px -6% 0px' });
     reveals.forEach(function (r) { io.observe(r); });
+
+    // Belt and braces: sweep anything the observer hasn't caught yet. Covers a
+    // stalled observer, and full-page captures / print, where the viewport
+    // suddenly becomes the whole document and the callback may not land in time.
+    function sweep() {
+      reveals.forEach(function (r) {
+        if (r.classList.contains('is-in')) return;
+        var box = r.getBoundingClientRect();
+        if (box.top < window.innerHeight && box.bottom > 0) r.classList.add('is-in');
+      });
+    }
+    window.addEventListener('load', function () { setTimeout(sweep, 600); });
+    window.addEventListener('resize', sweep, { passive: true });
+    if (window.matchMedia) {
+      var printing = window.matchMedia('print');
+      var onPrint = function (e) { if (e.matches) reveals.forEach(function (r) { r.classList.add('is-in'); }); };
+      if (printing.addEventListener) printing.addEventListener('change', onPrint);
+    }
   })();
 
 })();
