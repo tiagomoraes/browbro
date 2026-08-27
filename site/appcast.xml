@@ -6,6 +6,23 @@
     <description>In-app update feed for BrowBro. Each item is EdDSA-signed; see docs/UPDATES.md.</description>
     <language>en</language>
     <item>
+      <title>Version 0.1.7</title>
+      <link>https://github.com/tiagomoraes/browbro/releases/tag/v0.1.7</link>
+      <sparkle:version>7</sparkle:version>
+      <sparkle:shortVersionString>0.1.7</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <pubDate>Thu, 27 Aug 2026 14:24:49 +0000</pubDate>
+      <description><![CDATA[
+<h4>Changed</h4>
+<ul>
+<li><strong>Signed and notarized by Apple.</strong> Releases now ship with a Developer ID signature, the hardened runtime, and a stapled Apple notarization ticket. Downloading the DMG and dragging BrowBro to Applications just works — no "unidentified developer" block, no trip through System Settings, no Terminal incantation. macOS will ask once more for permission to read other apps' data (that's how it finds your Chrome profiles), because the app now carries a different signing identity than earlier builds.</li>
+</ul>
+      ]]></description>
+      <enclosure url="https://github.com/tiagomoraes/browbro/releases/download/v0.1.7/BrowBro.dmg"
+                 sparkle:edSignature="+1WVdX81DkcLqa2U/pvtgdnghvADIXc3lpjerxhk4dgcpFZCJGl424GbATKbPhTUQqjjGqmGeGBiDnf2vLpFCw==" length="2763193"
+                 type="application/x-apple-diskimage" />
+    </item>
+    <item>
       <title>Version 0.1.6</title>
       <link>https://github.com/tiagomoraes/browbro/releases/tag/v0.1.6</link>
       <sparkle:version>6</sparkle:version>

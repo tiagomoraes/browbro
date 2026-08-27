@@ -9,9 +9,10 @@ import Sparkle
 /// on the App Store to deliver updates. Sparkle is the standard for this: it
 /// checks a signed appcast, and — when the user accepts — downloads, verifies,
 /// and installs the new build in place, then relaunches. Trust is anchored on
-/// the EdDSA public key in Info.plist (`SUPublicEDKey`), independent of Apple
-/// notarization; Sparkle-installed updates also skip the Gatekeeper quarantine
-/// prompt the first manual download shows. See docs/UPDATES.md.
+/// the EdDSA public key in Info.plist (`SUPublicEDKey`), independent of the
+/// Developer ID signature Apple checks — an update has to satisfy both, and the
+/// stable EdDSA key is what lets the signing identity rotate without stranding
+/// installed copies. See docs/UPDATES.md.
 @MainActor
 @Observable
 final class UpdaterController {

@@ -7,15 +7,20 @@ non-App-Store macOS apps. From **Settings → Updates** (or the menu-bar
 exists it downloads, verifies, and installs it in place, then relaunches. No
 re-download, no drag-to-Applications.
 
-## How trust works (no notarization required)
+## How trust works
 
 Each update archive is signed with an **EdDSA (ed25519)** key. The matching
 public key is embedded in the app (`SUPublicEDKey` in `Resources/Info.plist`);
-Sparkle refuses any update whose signature doesn't verify against it. This is
-independent of Apple notarization — so BrowBro's unsigned-to-the-world DMG can
-still deliver trustworthy updates. As a bonus, Sparkle-installed updates are not
-quarantined, so they launch **without** the first-run "Open Anyway" detour that a
-manual DMG download triggers.
+Sparkle refuses any update whose signature doesn't verify against it. That check
+is independent of Apple's — releases are also Developer ID signed and notarized
+(see [NOTARIZING.md](NOTARIZING.md)), so an update has to satisfy both.
+
+**The EdDSA key is what makes the signing identity replaceable.** Sparkle accepts
+an update when *either* the EdDSA key matches *or* the Apple code-signing identity
+matches, precisely so identities can rotate without stranding installed copies.
+Keeping `SUPublicEDKey` stable is therefore more load-bearing than the certificate:
+lose the certificate and you buy a new one; lose the EdDSA key and every install
+stops trusting updates.
 
 - **Feed:** `https://browbro.tiagomoraes.cloud/appcast.xml` (served by GitHub
   Pages from [`site/appcast.xml`](../site/appcast.xml)).
@@ -40,9 +45,9 @@ every public release, or clients won't see the update.
 1. Bump both `MARKETING_VERSION` (e.g. `0.1.5`) and `CURRENT_PROJECT_VERSION`
    (e.g. `5`) in `project.yml`, and move the `CHANGELOG.md` entries under a new
    heading. (Follow the normal release flow in [CONTRIBUTING.md](../CONTRIBUTING.md).)
-2. Build the release DMG — `packaging/dmg/build-dmg.sh build/BrowBro.dmg`
-   (or the notarized `packaging/notarize/notarize-release.sh` once a Developer ID
-   cert exists; see [NOTARIZING.md](NOTARIZING.md)).
+2. Build the release DMG with `packaging/notarize/notarize-release.sh build/BrowBro.dmg`
+   — signed, notarized and stapled (see [NOTARIZING.md](NOTARIZING.md)). Never ship
+   `packaging/dmg/build-dmg.sh` output; that one is for local previews only.
 3. Generate the appcast `<item>` and paste it at the top of the `<channel>` in
    `site/appcast.xml`:
    ```sh
