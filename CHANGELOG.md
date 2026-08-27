@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-08-27
+
+### Changed
+
+- **Signed and notarized by Apple.** Releases now ship with a Developer ID signature, the
+  hardened runtime, and a stapled Apple notarization ticket. Downloading the DMG and dragging
+  BrowBro to Applications just works — no "unidentified developer" block, no trip through
+  System Settings, no Terminal incantation. macOS will ask once more for permission to read
+  other apps' data (that's how it finds your Chrome profiles), because the app now carries a
+  different signing identity than earlier builds.
+
 ## [0.1.6] - 2026-07-07
 
 ### Added

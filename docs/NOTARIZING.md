@@ -1,46 +1,66 @@
-# Notarizing BrowBro
+# Signing & notarizing BrowBro
 
-Notarization is Apple's automated malware check. A notarized, stapled build opens
-with no "Open Anyway" detour, and it's a prerequisite for landing in homebrew-cask
-core. It requires a **paid Apple Developer Program** membership (the free "Apple
-Development" certificate used for local builds cannot notarize).
+Public releases are signed with an Apple **Developer ID Application** certificate,
+built with the **hardened runtime**, and **notarized** by Apple. A notarized,
+stapled build opens on first launch with no "unidentified developer" block and no
+detour through System Settings — and it's a prerequisite for landing in
+homebrew-cask core.
+
+Everything below is already set up on the maintainer's machine; it's written down
+so a lost laptop or a second maintainer isn't a research project.
 
 ## One-time setup
 
 1. **Enroll** in the [Apple Developer Program](https://developer.apple.com/programs/) ($99/yr).
+   The free "Apple Development" certificate used for local builds cannot notarize.
 2. **Create a Developer ID Application certificate**
    Xcode, then Settings, then Accounts, then your team, then Manage Certificates,
    then the `+`, then "Developer ID Application". Confirm it's in your login keychain:
    ```sh
    security find-identity -v -p codesigning | grep "Developer ID Application"
    ```
-3. **Store notarization credentials** as a keychain profile:
+   Back it up: export the certificate **and its private key** as a `.p12` from
+   Keychain Access. Apple issues a limited number of Developer ID certificates per
+   account, and the private key cannot be recovered from Apple.
+3. **Store notarization credentials** as a keychain profile named `browbro-notary`
+   (the default the release script looks for):
    ```sh
    xcrun notarytool store-credentials browbro-notary \
      --apple-id "you@example.com" \
-     --team-id "YOURTEAMID" \
+     --team-id "QD5A8CZK76" \
      --password "APP-SPECIFIC-PASSWORD"
    ```
    Create the app-specific password at [appleid.apple.com](https://appleid.apple.com)
    (Sign-In and Security, then App-Specific Passwords). Alternatively pass an App
    Store Connect API key with `--key` / `--key-id` / `--issuer`.
+4. **Install dmgbuild**: `pipx install dmgbuild`. A bare `pip install` fails on a
+   Homebrew Python (PEP 668 marks the environment externally managed).
 
-## Build a notarized DMG
+## Build a release DMG
 
 ```sh
-pip install dmgbuild
-DEVELOPER_ID="Developer ID Application: Your Name (YOURTEAMID)" \
-NOTARY_PROFILE="browbro-notary" \
 packaging/notarize/notarize-release.sh build/BrowBro.dmg
 ```
 
-The script builds a universal, hardened-runtime, Developer-ID-signed app, wraps it
-in the styled DMG (`packaging/dmg/`), submits it to Apple, waits, and staples the
-ticket. Verify:
+That's the whole command — the Developer ID is auto-detected from the keychain and
+the notary profile defaults to `browbro-notary`. The script builds a universal,
+hardened-runtime app, signs Sparkle's nested helpers inside-out, signs the app, wraps
+it in the styled DMG (`packaging/dmg/`), signs the disk image, submits it to Apple,
+waits, staples the ticket, and then **refuses to succeed** unless Gatekeeper accepts
+both the DMG and the app inside it. If it prints `✅`, the download is clean.
+
+To check an already-built DMG by hand:
 
 ```sh
-spctl -a -t open --context context:primary-signature -vv build/BrowBro.dmg   # -> accepted
+spctl -a -t open --context context:primary-signature -vv build/BrowBro.dmg
+# -> accepted, source=Notarized Developer ID
 ```
+
+> **Staple, or it didn't happen.** Notarization succeeding at Apple is not enough:
+> an accepted-but-unstapled DMG is indistinguishable from an unsigned one on a
+> machine that can't reach Apple, and `stapler validate` is what proves the ticket
+> is attached. v0.1.6 was notarized successfully and shipped unsigned anyway,
+> because the run was interrupted between the two steps. The script now gates on it.
 
 ## Release it
 
@@ -56,12 +76,21 @@ spctl -a -t open --context context:primary-signature -vv build/BrowBro.dmg   # -
    `main` (Pages redeploys the feed). Full walkthrough in [UPDATES.md](UPDATES.md).
 5. Update the cask in the [homebrew-browbro tap](https://github.com/tiagomoraes/homebrew-browbro):
    bump `version` and `sha256`.
-6. Once notarized and reasonably popular, the cask can be submitted to
-   homebrew-cask core so the bare `brew install --cask browbro` works.
+6. Submitting the cask to homebrew-cask core (so the bare `brew install --cask browbro`
+   works) needs two things: notarization — now done — and their popularity floor of
+   30 stars, forks, or watchers on the repo. At 10 stars that's still the blocker.
 
 ## Notes
 
+- **Changing the signing identity is safe for existing installs.** Sparkle accepts
+  an update when *either* the EdDSA key matches *or* the Apple code-signing identity
+  matches — precisely so identities can rotate. BrowBro keeps the same `SUPublicEDKey`,
+  so users on an "Apple Development"-signed build update cleanly to a Developer ID one.
+- **It is not free for TCC.** macOS keys privacy grants to the code-signing identity,
+  so the first Developer ID build asks again for permission to read other apps' data
+  (how BrowBro discovers Chrome profiles). One prompt, once.
 - If a future feature scripts another app or needs a hardened-runtime exception,
   add the entitlement to `packaging/notarize/BrowBro.entitlements`.
-- The default (unsigned-to-the-world) `packaging/dmg/build-dmg.sh` still works for
-  quick local/preview builds; this pipeline is only for public, notarized releases.
+- `packaging/dmg/build-dmg.sh` builds an unsigned-to-the-world DMG for quick local
+  previews. **Never ship its output** — it's the path that produced the blocked
+  v0.1.6 download.

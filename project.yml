@@ -14,17 +14,19 @@ packages:
 settings:
   base:
     PRODUCT_BUNDLE_IDENTIFIER: so.aca.browbro
-    MARKETING_VERSION: "0.1.6"
+    MARKETING_VERSION: "0.1.7"
     # CFBundleVersion. Sparkle compares this to decide if an update is newer, so
     # it MUST increase on every public release (see docs/UPDATES.md).
-    CURRENT_PROJECT_VERSION: "6"
+    CURRENT_PROJECT_VERSION: "7"
     # Swift 5 language mode keeps the prototype free of strict-concurrency
     # noise; we can tighten to Swift 6 mode once the slice is proven.
     SWIFT_VERSION: "5.0"
-    # Local dev signing with the free "Apple Development" identity (from being
-    # signed into Xcode with an Apple ID). A valid, stable signature is required
-    # for macOS TCC to grant/persist access to Chrome's profile data; ad-hoc
-    # builds are refused by policy. Notarization remains deferred (Decision 7).
+    # Local dev signing with the "Apple Development" identity. A valid, stable
+    # signature is required for macOS TCC to grant/persist access to Chrome's
+    # profile data; ad-hoc builds are refused by policy. Public releases are
+    # signed with Developer ID and notarized instead — those settings are
+    # overridden by packaging/notarize/notarize-release.sh, not set here, so a
+    # dev build can never accidentally masquerade as a release.
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "Apple Development"
     DEVELOPMENT_TEAM: "QD5A8CZK76"
