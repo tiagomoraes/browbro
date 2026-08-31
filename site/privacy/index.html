@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Privacy Policy | BrowBro</title>
+<meta name="description" content="BrowBro routes clicked links on your Mac. It does not collect accounts, analytics, or browsing history.">
+<link rel="canonical" href="https://browbro.tiagomoraes.cloud/privacy">
+
+<meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121214" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BrowBro">
+<meta property="og:title" content="Privacy Policy | BrowBro">
+<meta property="og:description" content="BrowBro routes clicked links on your Mac. It does not collect accounts, analytics, or browsing history.">
+<meta property="og:url" content="https://browbro.tiagomoraes.cloud/privacy">
+<meta property="og:image" content="https://browbro.tiagomoraes.cloud/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Privacy Policy | BrowBro">
+<meta name="twitter:description" content="BrowBro routes clicked links on your Mac. Nothing leaves the device.">
+<meta name="twitter:image" content="https://browbro.tiagomoraes.cloud/assets/og-image.png">
+
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="mask-icon" href="../assets/favicon.svg" color="#2c6bed">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="../styles.css">
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    root.classList.add('js');
+    try {
+      var saved = localStorage.getItem('bb-theme');
+      var dark = saved ? saved === 'dark'
+        : window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      root.setAttribute('data-theme', dark ? 'dark' : 'light');
+    } catch (e) {
+      root.setAttribute('data-theme', 'light');
+    }
+  })();
+</script>
+</head>
+<body>
+
+<nav class="nav" id="site-nav">
+  <div class="nav__inner">
+    <a href="/" class="wordmark" aria-label="BrowBro home">
+      <svg class="wordmark__mark" width="26" height="26" viewBox="0 0 24 24" fill="none" role="img" aria-label="BrowBro">
+        <path d="M3.5 13 C 5 8, 9 8, 10.6 11 C 11.3 12.3, 12.7 12.3, 13.4 11 C 15 8, 19 8, 20.5 13" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" fill="none"></path>
+        <circle cx="7.3" cy="16.8" r="1.75" fill="currentColor"></circle>
+        <circle cx="16.7" cy="16.8" r="1.75" fill="currentColor"></circle>
+      </svg>
+      <span>BrowBro</span>
+    </a>
+    <div class="nav__right">
+      <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme">
+        <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+      </button>
+      <a href="/" class="btn-accent">Home</a>
+    </div>
+  </div>
+</nav>
+
+<main class="legal">
+  <h1>Privacy Policy</h1>
+  <p class="legal__updated">Last updated 30 August 2026</p>
+
+  <p>BrowBro is a macOS menu-bar app that intercepts clicked web links on your Mac and lets you pick which browser or Chrome profile opens them. It is made by Tiago Moraes.</p>
+
+  <h2>What BrowBro does on your Mac</h2>
+  <p>When you make BrowBro your default browser, macOS delivers the clicked URL to BrowBro. BrowBro shows a picker and then opens that URL in the browser you choose. Routing happens entirely on your computer. BrowBro does not load the page, does not run a web view, and does not send the URL to us.</p>
+
+  <h2>What we collect</h2>
+  <p>Nothing. There is no BrowBro account, no analytics, no crash reporter, no advertising identifier, and no server that receives your links or browser list.</p>
+
+  <h2>What stays on your Mac</h2>
+  <ul>
+    <li><strong>Preferences</strong> — default-browser status, picker order, visibility, and behavior toggles. Stored in macOS UserDefaults on this Mac. The Mac App Store build keeps them inside its sandbox container.</li>
+    <li><strong>Recent links</strong> — a short in-memory / local list so you can re-route a link you just opened. It never leaves the device.</li>
+    <li><strong>Chrome profiles</strong> — if you grant access, BrowBro reads Google Chrome’s local <code>Local State</code> file to list profile names, optional email labels, and colors. That file is Chrome’s, on your disk. BrowBro does not upload it. Access is limited to the folder you pick in the open panel (or, outside the Mac App Store, the equivalent TCC grant). You can decline; the rest of the app still works, without per-profile targets.</li>
+    <li><strong>Login item</strong> — only if you turn on “Launch at login” in Settings.</li>
+  </ul>
+
+  <h2>Network</h2>
+  <p>BrowBro itself does not need the network to route a link. Opening the GitHub repo or this site from Settings uses your default browser (which, while BrowBro is the default handler, is BrowBro — the picker will ask where to open it).</p>
+  <p>The direct download (DMG / Homebrew) build also checks a signed update feed at <code>browbro.tiagomoraes.cloud/appcast.xml</code> via Sparkle. That request is an update check; it does not include your links or profile list. The Mac App Store build does not include Sparkle and is updated by Apple.</p>
+
+  <h2>Children</h2>
+  <p>BrowBro is a utility. It does not target children and does not collect personal information from anyone.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes, the date at the top of this page will change. Continued use of BrowBro after an update means you accept the new policy.</p>
+
+  <h2>Contact</h2>
+  <p>Questions: <a href="https://github.com/tiagomoraes/browbro/issues">open an issue</a> on GitHub, or email via <a href="https://tiagomoraes.cloud">tiagomoraes.cloud</a>.</p>
+</main>
+
+<footer class="footer">
+  <div class="footer__inner">
+    <div class="footer__bottom">
+      <span class="footer__copy">© <span id="year">2026</span> BrowBro · Open source · Made for macOS</span>
+      <div class="footer__links">
+        <a href="/">Home</a>
+        <a href="https://github.com/tiagomoraes/browbro" target="_blank" rel="noopener">GitHub</a>
+        <a href="/privacy">Privacy</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="../app.js"></script>
+</body>
+</html>
