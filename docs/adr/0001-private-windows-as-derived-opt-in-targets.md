@@ -27,6 +27,12 @@ gates *whether* the picker appears, never *how* a pick behaves.
   running Chrome: `--profile-directory="Profile 1" --incognito <url>` → "Opening in
   existing browser session."). This extends the pattern `openInChrome` already established
   for `--profile-directory`.
+- **Amendment (Mac App Store).** The App Sandbox forbids `Process()` of another app's
+  binary. The `BrowBroMAS` target (`-D APPSTORE`) launches flagged targets via
+  `NSWorkspace.openApplication` with `OpenConfiguration.arguments` and
+  `createsNewApplicationInstance = true`, so Launch Services delivers the flags and
+  Chromium/Firefox still forward to the running instance. The DMG/Homebrew build keeps
+  the verified `Process()` path. See [docs/MAS.md](../MAS.md).
 - **Chrome profiles compose.** An incognito window belongs to a profile (extensions,
   enterprise policy), so a Private Window variant of a specific Chrome Profile launches
   `--profile-directory=X --incognito` deterministically; a browser-level Chrome variant

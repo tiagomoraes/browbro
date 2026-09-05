@@ -27,6 +27,9 @@ signature-verified and installed in place. Homebrew users can also just
 `brew upgrade --cask browbro`. See [docs/UPDATES.md](docs/UPDATES.md) for how releases are
 signed and published.
 
+A separate Mac App Store binary (`BrowBroMAS`) is sandboxed and does not include
+Sparkle — the store updates that copy. See [docs/MAS.md](docs/MAS.md).
+
 ## Website
 
 The marketing site lives in [`site/`](site/): a self-contained static site (no build

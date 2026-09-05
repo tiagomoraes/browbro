@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BrowBro — Mac App Store marketing frames</title>
+<!--
+  Eight English marketing frames for App Store Connect.
+
+  Authored at 1280x800 CSS px and rendered at devicePixelRatio 2 by
+  render-screenshots.sh, which yields the 2560x1600 (16:10) assets Connect
+  wants. Everything inside a .picker / .win is pixel-faithful to the app's
+  design tokens (Sources/DesignTokens.swift): dimensions are written as
+  `calc(N * var(--k) * 1px)`, where N is the real value in macOS points and --k is
+  the marketing zoom for that frame. --k:1 would be actual size.
+
+  Fictional content only: invented profiles (Work / Personal / Design),
+  invented accounts on example.com, never a capture of a real machine.
+-->
+<style>
+  /* ============================================================ tokens */
+  :root {
+    /* BrowBro Blue */
+    --blue:      #2c6bed;
+    --blue-ink:  #1d55cc;
+    --blue-deep: #1e4fb5;
+    --blue-hi:   #4d84f0;
+
+    /* light surfaces + ink */
+    --raised: #ffffff;
+    --sunken: #ededf0;
+    --pop:    #f6f6f8;
+    --ink:    #1d1d1f;
+    --sec:    #6e6e73;
+    --ter:    #98989d;
+
+    /* dark surfaces + ink */
+    --d-pop:    #262629;
+    --d-raised: #2e2e31;
+    --d-sunken: #202022;
+    --d-ink:    #f5f5f7;
+    --d-sec:    #a1a1a6;
+    --d-ter:    #7c7c82;
+
+    --success: #248a3d;
+
+    /* Chrome profile highlight colours (bounded to swatches only) */
+    --c-green:  #1e8e3e;
+    --c-purple: #9334e6;
+    --c-orange: #fa7b17;
+    --c-blue:   #4285f4;
+
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+
+    /* Marketing zoom for app UI: 1 = actual macOS points. Every app-UI
+       dimension below is written as calc(N * var(--k) * 1px), so overriding --k
+       on a subtree really does rescale it. */
+    --k: 1.5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 1280px; height: 800px; overflow: hidden;
+    background: #000;
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .frame { width: 1280px; height: 800px; position: relative; overflow: hidden; display: none; }
+
+  /* ?audit=1 — unclip the frames and draw the real 1280×800 boundary, so
+     anything running past an edge shows up in the render instead of being
+     silently cut. Never used by render-screenshots.sh. */
+  body.audit, body.audit .frame { height: auto; min-height: 800px; overflow: visible; }
+  body.audit .frame { outline: 3px solid rgba(255,0,0,0.9); outline-offset: -2px; }
+  body.audit .frame::after {
+    content: ""; position: absolute; left: 0; top: 800px; width: 1280px; height: 3px;
+    background: rgba(255,0,0,0.9); z-index: 999;
+  }
+  body[data-shot="hero"]     .f-hero,
+  body[data-shot="profiles"] .f-profiles,
+  body[data-shot="keys"]     .f-keys,
+  body[data-shot="private"]  .f-private,
+  body[data-shot="modifier"] .f-modifier,
+  body[data-shot="trust"]    .f-trust,
+  body[data-shot="catalog"]  .f-catalog,
+  body[data-shot="privacy"]  .f-privacy { display: block; }
+
+  /* ======================================================= type system */
+  .eyebrow {
+    font-size: 15px; font-weight: 700; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--blue);
+  }
+  h1 {
+    font-size: 68px; font-weight: 700; line-height: 0.94;
+    letter-spacing: -0.035em; color: var(--ink);
+  }
+  .lede {
+    font-size: 23px; font-weight: 400; line-height: 1.42;
+    color: var(--sec); letter-spacing: -0.011em;
+  }
+  .on-dark h1, .on-dark .capline { color: var(--d-ink); }
+  .on-dark .lede { color: var(--d-sec); }
+  .on-dark .eyebrow { color: #8fb4fb; }
+  .on-blue h1, .on-blue .capline { color: #fff; }
+  .on-blue .lede { color: rgba(255,255,255,0.84); }
+  .on-blue .eyebrow { color: rgba(255,255,255,0.72); }
+  .capline {
+    font-size: 15px; font-weight: 700; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--ter);
+  }
+
+  /* ================================================ the picker (app UI) */
+  .picker {
+    width: calc(360 * var(--k) * 1px);
+    padding: calc(4 * var(--k) * 1px);
+    border-radius: calc(12 * var(--k) * 1px);
+    background: var(--pop);
+    border: 1px solid rgba(0,0,0,0.12);
+    box-shadow:
+      0 calc(2 * var(--k) * 1px) calc(6 * var(--k) * 1px) rgba(0,0,0,0.10),
+      0 calc(18 * var(--k) * 1px) calc(44 * var(--k) * 1px) calc(-10 * var(--k) * 1px) rgba(0,0,0,0.34);
+  }
+  .picker.dark {
+    background: var(--d-pop);
+    border-color: rgba(255,255,255,0.10);
+    box-shadow: 0 calc(20 * var(--k) * 1px) calc(52 * var(--k) * 1px) calc(-12 * var(--k) * 1px) rgba(0,0,0,0.66);
+  }
+
+  .pk-head { padding: calc(6 * var(--k) * 1px) calc(8 * var(--k) * 1px); }
+  .pk-url {
+    font-family: var(--mono); font-size: calc(12 * var(--k) * 1px);
+    line-height: 1.25; color: var(--ter); white-space: nowrap;
+  }
+  .pk-url b { font-weight: 600; color: var(--ink); }
+  .dark .pk-url { color: var(--d-ter); }
+  .dark .pk-url b { color: var(--d-ink); }
+  .pk-src {
+    margin-top: calc(2 * var(--k) * 1px);
+    display: flex; align-items: center; gap: calc(4 * var(--k) * 1px);
+    font-size: calc(11 * var(--k) * 1px); color: var(--sec);
+  }
+  .dark .pk-src { color: var(--d-sec); }
+  .pk-srcicon {
+    width: calc(14 * var(--k) * 1px); height: calc(14 * var(--k) * 1px);
+    border-radius: calc(3.5 * var(--k) * 1px); flex: none;
+    background: linear-gradient(180deg, #61d16a, #34a853);
+  }
+  .pk-div {
+    height: 1px; background: rgba(0,0,0,0.10);
+    margin: calc(2 * var(--k) * 1px) calc(6 * var(--k) * 1px);
+  }
+  .dark .pk-div { background: rgba(255,255,255,0.12); }
+
+  .pk-rows { display: flex; flex-direction: column; gap: calc(2 * var(--k) * 1px); }
+  .pk-row {
+    display: flex; align-items: center; gap: calc(8 * var(--k) * 1px);
+    padding: calc(4 * var(--k) * 1px) calc(6 * var(--k) * 1px);
+    border-radius: calc(6 * var(--k) * 1px);
+  }
+  .pk-row.on { background: var(--blue); }
+  .pk-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: calc(1 * var(--k) * 1px); }
+  .pk-name {
+    font-size: calc(13 * var(--k) * 1px); font-weight: 500;
+    letter-spacing: -0.006em; color: var(--ink); white-space: nowrap;
+  }
+  .dark .pk-name { color: var(--d-ink); }
+  .pk-sub { font-size: calc(12 * var(--k) * 1px); color: var(--sec); white-space: nowrap; }
+  .dark .pk-sub { color: var(--d-sec); }
+  .pk-row.on .pk-name { color: #fff; }
+  .pk-row.on .pk-sub { color: rgba(255,255,255,0.82); }
+
+  .pk-key {
+    flex: none; min-width: calc(19 * var(--k) * 1px); height: calc(19 * var(--k) * 1px);
+    padding: 0 calc(5 * var(--k) * 1px); border-radius: calc(4 * var(--k) * 1px);
+    display: flex; align-items: center; justify-content: center;
+    font-size: calc(11 * var(--k) * 1px); font-weight: 600;
+    font-variant-numeric: tabular-nums; color: var(--sec);
+    background: rgba(0,0,0,0.045); border: 1px solid rgba(0,0,0,0.12);
+  }
+  .dark .pk-key { color: var(--d-sec); background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14); }
+  .pk-row.on .pk-key {
+    color: #fff; background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.28);
+  }
+
+  /* leading art: Chrome profile swatch / browser app chip */
+  .swatch, .appchip {
+    position: relative; flex: none;
+    width: calc(26 * var(--k) * 1px); height: calc(26 * var(--k) * 1px);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 600; font-size: calc(11 * var(--k) * 1px);
+  }
+  .swatch {
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18);
+  }
+  .appchip { border-radius: calc(6 * var(--k) * 1px); font-size: calc(13 * var(--k) * 1px); letter-spacing: 0; }
+  .appchip::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.34), inset 0 0 0 1px rgba(0,0,0,0.12);
+  }
+  /* Browser app tiles. Not a facsimile of anyone's logo: a monogram tile in the
+     browser's own hue, which is honest about being a stand-in and stays legible
+     at 26pt. Circle = Chrome profile, squircle = app — the app's own grammar. */
+  .appchip.safari  { background: linear-gradient(180deg, #5cc3ff, #1a8fea); }
+  .appchip.chrome  { background: linear-gradient(180deg, #6ea6f8, #3c7ceb); }
+  .appchip.firefox { background: linear-gradient(180deg, #ff9a5c, #f2621f); }
+  .appchip.edge    { background: linear-gradient(180deg, #3fc2d6, #0f8fa6); }
+  .appchip.brave   { background: linear-gradient(180deg, #ff8f6b, #e0452c); }
+  .appchip.arc     { background: linear-gradient(180deg, #b28cf7, #7c4fd6); }
+  .badge {
+    position: absolute; right: calc(-3 * var(--k) * 1px); bottom: calc(-3 * var(--k) * 1px);
+    width: calc(13 * var(--k) * 1px); height: calc(13 * var(--k) * 1px); border-radius: 999px;
+    background: #292929; box-shadow: 0 0 0 1px rgba(255,255,255,0.35);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .badge svg { width: 68%; height: 68%; }
+
+  /* ==================================================== mac window mock */
+  .win {
+    background: var(--raised); border-radius: 11px; overflow: hidden;
+    box-shadow:
+      0 2px 6px rgba(0,0,0,0.10),
+      0 26px 60px -16px rgba(0,0,0,0.34);
+    border: 1px solid rgba(0,0,0,0.10);
+  }
+  .win.dark { background: var(--d-raised); border-color: rgba(255,255,255,0.10); }
+  .titlebar {
+    height: 34px; display: flex; align-items: center; gap: 7px;
+    padding: 0 13px; background: #f0f0f2;
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.09);
+    font-size: 13px; font-weight: 600; color: var(--ink);
+  }
+  .dark .titlebar { background: #38383c; color: var(--d-ink); box-shadow: inset 0 -1px 0 rgba(255,255,255,0.08); }
+  .tl { width: 11px; height: 11px; border-radius: 999px; flex: none; }
+  .tl.r { background: #ff5f57; } .tl.y { background: #febc2e; } .tl.g { background: #28c840; }
+  .titlebar .tt { margin-left: 8px; }
+
+  /* ========================================================== menu bar */
+  .menubar {
+    position: absolute; inset: 0 0 auto 0; height: 30px; z-index: 6;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 18px; font-size: 14px; font-weight: 500; color: #fff;
+    background: rgba(20,26,48,0.34);
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.10);
+  }
+  .menubar .grp { display: flex; align-items: center; gap: 18px; }
+  .menubar .app { font-weight: 700; }
+  .menubar svg { display: block; }
+  .brow { width: 19px; height: 19px; }
+
+  /* ======================================================== 1 — HERO */
+  .f-hero {
+    background:
+      radial-gradient(900px 620px at 20% 8%,  rgba(126,178,255,0.95), transparent 62%),
+      radial-gradient(760px 720px at 84% 4%,  rgba(150,124,255,0.80), transparent 60%),
+      radial-gradient(980px 620px at 62% 104%, rgba(66,196,214,0.55), transparent 62%),
+      linear-gradient(158deg, #1a2b64 0%, #2b3f92 46%, #142a55 100%);
+  }
+  .hero-copy { position: absolute; left: 84px; top: 150px; width: 540px; }
+  .hero-copy h1 { font-size: 82px; color: #fff; text-shadow: 0 2px 24px rgba(10,18,44,0.35); }
+  .hero-copy .lede { margin-top: 28px; font-size: 25px; color: rgba(255,255,255,0.88); width: 470px; }
+  .hero-strip { position: absolute; left: 84px; top: 540px; width: 580px; }
+  .hero-strip .capline { color: rgba(255,255,255,0.62); }
+  .strip-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
+  .namepill {
+    display: inline-flex; align-items: center; height: 38px; padding: 0 17px;
+    border-radius: 999px; font-size: 16px; font-weight: 600; letter-spacing: -0.012em;
+    color: rgba(255,255,255,0.94);
+    background: rgba(255,255,255,0.13); border: 1px solid rgba(255,255,255,0.22);
+  }
+  .namepill.more { color: rgba(255,255,255,0.62); background: transparent; border-style: dashed; font-weight: 500; }
+
+  .hero-win { position: absolute; left: 604px; top: 104px; width: 402px; }
+  .bubbles { padding: 16px 16px 20px; display: flex; flex-direction: column; gap: 8px; }
+  .bubble {
+    align-self: flex-start; max-width: 88%;
+    background: #e9e9ee; color: var(--ink);
+    border-radius: 15px 15px 15px 5px; padding: 9px 13px;
+    font-size: 14.5px; line-height: 1.35;
+  }
+  .bubble a { color: var(--blue-ink); font-weight: 600; text-decoration: none; }
+  .hero-picker { position: absolute; left: 638px; top: 274px; }
+  .cursor {
+    position: absolute; width: 34px; height: 34px; z-index: 9;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45));
+  }
+  .hero-cursor { left: 622px; top: 270px; }
+
+  /* ==================================================== 2 — PROFILES */
+  .f-profiles {
+    background:
+      radial-gradient(760px 560px at 76% 24%, rgba(44,107,237,0.30), transparent 64%),
+      radial-gradient(620px 520px at 10% 88%, rgba(147,52,230,0.20), transparent 62%),
+      #0e0e11;
+  }
+  .pr-copy { position: absolute; left: 84px; top: 150px; width: 540px; }
+  .pr-copy h1 { margin-top: 20px; font-size: 68px; }
+  .pr-copy .lede { margin-top: 26px; width: 470px; }
+  .pr-picker { position: absolute; right: 84px; top: 150px; }
+  .pr-cards { position: absolute; left: 84px; top: 540px; display: flex; gap: 16px; }
+  .pcard {
+    width: 174px; padding: 18px 16px; border-radius: 14px;
+    display: flex; align-items: center; gap: 13px;
+    background: #1a1a1f; border: 1px solid rgba(255,255,255,0.09);
+  }
+  .pcard .swatch { --k: 1.5; }
+  .pcard .nm { font-size: 17px; font-weight: 600; color: var(--d-ink); letter-spacing: -0.012em; }
+  .pcard .kk {
+    margin-top: 5px; display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 500; color: var(--d-sec);
+  }
+  .pcard .kk i {
+    font-style: normal; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 5px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.16); color: var(--d-ink);
+  }
+
+  /* ======================================================== 3 — KEYS */
+  .f-keys {
+    background:
+      radial-gradient(820px 620px at 78% 12%, #4a83f5, transparent 66%),
+      radial-gradient(700px 700px at 8% 96%, #1b49ac, transparent 64%),
+      #2c6bed;
+  }
+  .ky-copy { position: absolute; left: 84px; top: 150px; width: 540px; }
+  .ky-copy h1 { margin-top: 20px; font-size: 68px; }
+  .ky-copy .lede { margin-top: 26px; width: 450px; }
+  .ky-picker { position: absolute; right: 84px; top: 150px; }
+  .keyboard { position: absolute; left: 84px; right: 84px; top: 596px; display: flex; gap: 14px; align-items: stretch; }
+  .cap {
+    flex: 1; height: 106px; border-radius: 16px;
+    background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.20);
+    box-shadow: 0 5px 0 rgba(9,32,86,0.30);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    color: #fff;
+  }
+  .cap b { font-size: 38px; font-weight: 700; letter-spacing: -0.02em; }
+  .cap small { font-size: 13px; font-weight: 600; opacity: 0.74; }
+  .cap.wide { flex: 1.55; }
+  .cap.down {
+    background: #fff; border-color: #fff; color: var(--blue);
+    transform: translateY(5px); box-shadow: 0 0 0 rgba(0,0,0,0);
+  }
+  .cap.down small { opacity: 1; color: var(--blue-deep); }
+  .key-note {
+    position: absolute; left: 84px; top: 548px;
+    font-size: 16px; font-weight: 500; color: rgba(255,255,255,0.78);
+  }
+
+  /* ===================================================== 4 — PRIVATE */
+  .f-private {
+    background:
+      radial-gradient(760px 560px at 82% 10%, #ffffff, transparent 62%),
+      linear-gradient(150deg, #eef1f7 0%, #e3e8f2 60%, #dfe4f0 100%);
+  }
+  .pv-copy { position: absolute; left: 84px; top: 150px; width: 520px; }
+  .pv-copy h1 { margin-top: 20px; font-size: 68px; }
+  .pv-copy .lede { margin-top: 26px; width: 460px; }
+  .pv-picker { position: absolute; right: 84px; top: 150px; }
+  .pv-note {
+    position: absolute; right: 84px; top: 540px; width: calc(360 * 1.5px);
+    display: flex; align-items: flex-start; gap: 12px;
+    background: rgba(255,255,255,0.66); border: 1px solid rgba(0,0,0,0.07);
+    border-radius: 14px; padding: 16px 18px;
+    font-size: 15px; line-height: 1.4; color: var(--sec);
+  }
+  .pv-note b { color: var(--ink); font-weight: 600; }
+  .pv-note .dot {
+    flex: none; width: 8px; height: 8px; border-radius: 999px;
+    margin-top: 7px; background: var(--blue);
+  }
+  .pv-toggle {
+    position: absolute; left: 84px; top: 540px; width: 520px;
+    background: var(--raised); border-radius: 14px; padding: 18px 20px;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 18px 40px -18px rgba(23,32,64,0.30);
+  }
+  .settings-row { display: flex; align-items: center; gap: 12px; }
+  .settings-row + .settings-row { margin-top: 14px; padding-top: 14px; box-shadow: inset 0 1px 0 rgba(0,0,0,0.08); }
+  .settings-row .lbl { flex: 1; min-width: 0; }
+  .settings-row .t1 { font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+  .settings-row .t2 { margin-top: 2px; font-size: 13px; color: var(--sec); }
+  .sw {
+    flex: none; width: 42px; height: 25px; border-radius: 999px; position: relative;
+    background: #d7d7dc; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
+  }
+  .sw.on { background: var(--blue); box-shadow: none; }
+  .sw::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 21px; height: 21px; border-radius: 999px; background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.28);
+  }
+  .sw.on::after { left: auto; right: 2px; }
+
+  /* ==================================================== 5 — MODIFIER */
+  .f-modifier { background: linear-gradient(150deg, #f7f8fb 0%, #eef1f7 100%); }
+  .md-copy { position: absolute; left: 84px; top: 150px; width: 452px; }
+  .md-copy h1 { margin-top: 20px; font-size: 68px; }
+  .md-copy .lede { margin-top: 26px; width: 436px; }
+  .md-note { position: absolute; left: 84px; top: 540px; width: 452px; display: flex; flex-direction: column; gap: 18px; }
+  .paths { position: absolute; right: 84px; top: 150px; width: 604px; display: flex; flex-direction: column; gap: 22px; }
+  .path {
+    background: var(--raised); border-radius: 18px; padding: 24px 26px 26px;
+    border: 1px solid rgba(0,0,0,0.07);
+    box-shadow: 0 18px 42px -22px rgba(23,32,64,0.36);
+  }
+  .ptitle { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+  .psub { margin-top: 4px; font-size: 14.5px; color: var(--sec); }
+  .prow { margin-top: 20px; display: flex; align-items: center; gap: 18px; }
+  .gesture { flex: none; min-width: 126px; display: flex; align-items: center; gap: 8px; }
+  .gkey {
+    height: 42px; min-width: 42px; padding: 0 12px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 700; color: var(--ink);
+    background: #f4f4f7; border: 1px solid rgba(0,0,0,0.12); box-shadow: 0 2px 0 rgba(0,0,0,0.07);
+  }
+  .gkey.accent { background: var(--blue); color: #fff; border-color: transparent; box-shadow: 0 2px 0 var(--blue-deep); }
+  .gplus { font-size: 16px; font-weight: 600; color: var(--ter); }
+  .flowarrow {
+    flex: none; width: 22px; font-size: 24px; line-height: 1; text-align: center;
+    color: rgba(0,0,0,0.32);
+  }
+  .flowarrow::after { content: "\2192"; }
+  .minwin {
+    flex: none; width: 360px; border-radius: 12px; overflow: hidden;
+    background: var(--raised); border: 1px solid rgba(0,0,0,0.09);
+    box-shadow: 0 12px 26px -16px rgba(0,0,0,0.46);
+  }
+  .mw-bar {
+    height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 11px;
+    background: #f0f0f2; box-shadow: inset 0 -1px 0 rgba(0,0,0,0.08);
+  }
+  .mw-body { display: flex; align-items: center; gap: 12px; padding: 14px 15px 16px; }
+  .mw-body .appchip { --k: 1.5; }
+  .mw-body .t1 { font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: -0.012em; }
+  .mw-body .t2 { margin-top: 2px; font-size: 13px; color: var(--sec); }
+  .mini { flex: none; }
+
+  /* ======================================================= 6 — TRUST */
+  .f-trust {
+    background:
+      radial-gradient(700px 520px at 20% 12%, #ffffff, transparent 64%),
+      linear-gradient(155deg, #f4f6fa 0%, #e9edf6 100%);
+  }
+  .tr-copy { position: absolute; left: 84px; top: 150px; width: 500px; }
+  .tr-copy h1 { margin-top: 20px; font-size: 68px; }
+  .tr-copy .lede { margin-top: 26px; width: 440px; }
+  .tr-checks { position: absolute; left: 84px; top: 540px; width: 480px; display: flex; flex-direction: column; gap: 17px; }
+  .check { display: flex; align-items: flex-start; gap: 12px; }
+  .check .tick {
+    flex: none; width: 24px; height: 24px; border-radius: 999px; margin-top: 1px;
+    background: rgba(36,138,61,0.12); display: flex; align-items: center; justify-content: center;
+  }
+  .check .tick svg { width: 13px; height: 13px; }
+  .check .tx { font-size: 16px; line-height: 1.35; color: var(--ink); font-weight: 500; letter-spacing: -0.01em; }
+  .check .tx small { display: block; margin-top: 2px; font-size: 14px; font-weight: 400; color: var(--sec); }
+
+  .onboard { position: absolute; right: 84px; top: 150px; width: 502px; }
+  .ob-body { padding: 34px 40px 32px; text-align: center; }
+  .apptile {
+    width: 88px; height: 88px; margin: 0 auto 20px; border-radius: 20px;
+    background: linear-gradient(180deg, #4d84f0 0%, #2c6bed 46%, #1e4fb5 100%);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 12px 26px -10px rgba(30,79,181,0.62);
+  }
+  .apptile svg { width: 55px; height: 55px; }
+  .ob-body h2 { font-size: 26px; font-weight: 700; letter-spacing: -0.025em; color: var(--ink); }
+  .ob-body p { margin-top: 10px; font-size: 15px; line-height: 1.45; color: var(--sec); }
+  .prior {
+    margin-top: 22px; display: flex; align-items: center; gap: 11px; text-align: left;
+    background: var(--sunken); border-radius: 9px; padding: 12px 14px;
+  }
+  .prior .appchip { --k: 1.35; }
+  .prior .t1 { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .prior .t2 { margin-top: 1px; font-size: 12.5px; color: var(--sec); }
+  .btn {
+    margin-top: 18px; height: 44px; border-radius: 9px; width: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 600; letter-spacing: -0.01em;
+    background: var(--blue); color: #fff;
+  }
+  .btn.ghost { margin-top: 8px; height: 36px; background: transparent; color: var(--sec); font-size: 14.5px; font-weight: 500; }
+
+  /* ===================================================== 7 — CATALOG */
+  .f-catalog {
+    background:
+      radial-gradient(760px 600px at 18% 10%, rgba(255,255,255,0.9), transparent 62%),
+      linear-gradient(150deg, #edf0f7 0%, #e2e7f2 100%);
+  }
+  .ct-copy { position: absolute; left: 84px; top: 150px; width: 450px; }
+  .ct-copy h1 { margin-top: 20px; font-size: 68px; }
+  .ct-copy .lede { margin-top: 26px; width: 410px; }
+  .ct-note { position: absolute; left: 84px; top: 540px; width: 440px; display: flex; flex-direction: column; gap: 18px; }
+  .settings-win { position: absolute; right: 84px; top: 132px; width: 552px; }
+  .sbody { padding: 17px 20px 20px; }
+  .glabel {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 0 3px 7px; font-size: 11.5px; font-weight: 700;
+    letter-spacing: 0.07em; text-transform: uppercase; color: var(--ter);
+  }
+  .glabel em { font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 12px; }
+  .gcard { background: var(--sunken); border-radius: 10px; overflow: hidden; }
+  .gcard + .glabel { margin-top: 17px; }
+  .grow { display: flex; align-items: center; gap: 11px; padding: 9.5px 13px; }
+  .grow + .grow { box-shadow: inset 0 1px 0 rgba(0,0,0,0.075); }
+  .grow.drag { background: var(--raised); box-shadow: 0 6px 18px -6px rgba(0,0,0,0.30); border-radius: 8px; }
+  .grow .appchip, .grow .swatch { --k: 1.3; }
+  .grow .lbl { flex: 1; min-width: 0; }
+  .grow .t1 { font-size: 14px; font-weight: 500; color: var(--ink); letter-spacing: -0.008em; }
+  .grow .t2 { margin-top: 1px; font-size: 12.5px; color: var(--sec); }
+  .grip { flex: none; width: 11px; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+  .grip i { display: block; width: 4px; height: 4px; border-radius: 999px; background: #c2c2c7; }
+  .grow .sw { width: 36px; height: 21px; }
+  .grow .sw::after { width: 17px; height: 17px; }
+  .okdot { flex: none; width: 9px; height: 9px; border-radius: 999px; background: var(--success); }
+
+  /* ===================================================== 8 — PRIVACY */
+  .f-privacy {
+    background:
+      radial-gradient(700px 540px at 76% 14%, rgba(44,107,237,0.26), transparent 64%),
+      #0e0e11;
+  }
+  .pz-copy { position: absolute; left: 84px; top: 150px; width: 560px; }
+  .pz-copy h1 { margin-top: 20px; font-size: 68px; }
+  .pz-copy .lede { margin-top: 26px; width: 490px; }
+  .tiles { position: absolute; left: 84px; right: 84px; top: 540px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .tile {
+    background: #17171b; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 13px; padding: 16px 18px 17px;
+  }
+  .tile .t1 { font-size: 16px; font-weight: 600; color: var(--d-ink); letter-spacing: -0.012em; }
+  .tile .t2 { margin-top: 4px; font-size: 13px; line-height: 1.35; color: var(--d-ter); }
+
+  .drop { position: absolute; right: 138px; top: 150px; width: 358px; }
+  .dropdown {
+    background: var(--d-pop); border-radius: 11px; padding: 5px;
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 24px 56px -14px rgba(0,0,0,0.72);
+  }
+  .dd-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 9px; }
+  .wordmark { display: flex; align-items: center; gap: 7px; }
+  .wordmark svg { width: 20px; height: 20px; }
+  .wordmark span { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; color: var(--d-ink); }
+  .pill {
+    display: flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px;
+    background: rgba(255,255,255,0.07); font-size: 11.5px; font-weight: 500; color: var(--d-sec);
+  }
+  .pill i { width: 6px; height: 6px; border-radius: 999px; background: #30d158; display: block; }
+  .dd-sep { height: 1px; background: rgba(255,255,255,0.12); margin: 4px 6px; }
+  .dd-label {
+    padding: 4px 9px 3px; font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.07em; text-transform: uppercase; color: var(--d-ter);
+  }
+  .dd-row { padding: 6px 9px; border-radius: 6px; }
+  .dd-row.hl { background: rgba(255,255,255,0.07); }
+  .dd-row .u { font-family: var(--mono); font-size: 12px; color: var(--d-ink); }
+  .dd-row .m { margin-top: 2px; font-size: 11.5px; color: var(--d-ter); }
+  .dd-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 9px; border-radius: 6px; font-size: 13px; color: var(--d-ink);
+  }
+  .dd-item span { font-size: 12px; color: var(--d-ter); }
+  .menubar-strip {
+    position: absolute; right: 84px; top: 96px; width: 440px; height: 36px;
+    display: flex; align-items: center; justify-content: flex-end; gap: 16px;
+    padding: 0 14px; border-radius: 9px;
+    background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.10);
+    font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.86);
+  }
+  .menubar-strip .brow { color: #fff; }
+  .menubar-strip .hot { position: relative; }
+  .menubar-strip .hot::after {
+    content: ""; position: absolute; inset: -6px -9px; border-radius: 7px;
+    background: rgba(255,255,255,0.16);
+  }
+  .menubar-strip .hot svg { position: relative; z-index: 1; }
+</style>
+</head>
+<body data-shot="hero">
+<script>
+  const q = new URLSearchParams(location.search);
+  document.body.dataset.shot = q.get('shot') || 'hero';
+  if (q.has('audit')) document.body.classList.add('audit');
+</script>
+
+<!-- ================================================= reusable svg defs -->
+<svg style="position:absolute;width:0;height:0" aria-hidden="true">
+  <defs>
+    <!-- BrowBro unibrow logomark, geometry identical to Sources/Brand.swift -->
+    <g id="brow">
+      <path d="M3.5 13 C 5 8, 9 8, 10.6 11 C 11.3 12.3, 12.7 12.3, 13.4 11 C 15 8, 19 8, 20.5 13"
+            fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+      <circle cx="7.3" cy="16.8" r="1.75" fill="currentColor"/>
+      <circle cx="16.7" cy="16.8" r="1.75" fill="currentColor"/>
+    </g>
+    <g id="shades">
+      <path d="M4 8.5h16v2.2a2 2 0 0 1-2 2h-2.6a2 2 0 0 1-2-1.6l-.2-1h-2.4l-.2 1a2 2 0 0 1-2 1.6H6a2 2 0 0 1-2-2Z" fill="#fff"/>
+    </g>
+    <g id="tick">
+      <path d="M2.5 7.2 5.4 10 11.5 3.4" fill="none" stroke="#248a3d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="pointer">
+      <path d="M11 2.75a1.75 1.75 0 0 0-1.75 1.75v6.19l-1.2-1.6a1.75 1.75 0 0 0-2.8 2.1l3.05 4.07a4 4 0 0 0 3.2 1.6h2.35a3.75 3.75 0 0 0 3.75-3.75v-3.9a1.75 1.75 0 0 0-3.28-.85 1.75 1.75 0 0 0-2.5-.9V4.5A1.75 1.75 0 0 0 11 2.75Z"
+            fill="#fff" stroke="#1d1d1f" stroke-width="1.1" stroke-linejoin="round"/>
+    </g>
+  </defs>
+</svg>
+
+<!-- ==================================================== 1 — HERO ==== -->
+<section class="frame f-hero">
+  <div class="menubar">
+    <div class="grp">
+      <span class="app">Messages</span>
+      <span>File</span><span>Edit</span><span>View</span><span>Window</span><span>Help</span>
+    </div>
+    <div class="grp">
+      <svg class="brow" viewBox="0 0 24 24" style="color:#fff"><use href="#brow"/></svg>
+      <svg width="17" height="14" viewBox="0 0 17 14" fill="none"><path d="M1 4.2A11 11 0 0 1 16 4.2M3.7 7.3a7.2 7.2 0 0 1 9.6 0M6.4 10.4a3.4 3.4 0 0 1 4.2 0" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><circle cx="8.5" cy="12.6" r="1.1" fill="#fff"/></svg>
+      <svg width="24" height="13" viewBox="0 0 24 13" fill="none"><rect x="0.75" y="0.75" width="19" height="11.5" rx="3.2" stroke="#fff" stroke-opacity="0.7" stroke-width="1.3"/><rect x="2.6" y="2.6" width="12.6" height="7.8" rx="1.9" fill="#fff"/><path d="M21.4 4.4v4.2a2.4 2.4 0 0 0 0-4.2Z" fill="#fff" fill-opacity="0.7"/></svg>
+      <span>Fri 9:41</span>
+    </div>
+  </div>
+
+  <div class="hero-copy">
+    <h1>Every link,<br>your call.</h1>
+    <p class="lede">BrowBro becomes your default browser, then hands every link straight back to you — as a picker that opens right at your cursor.</p>
+  </div>
+
+  <div class="hero-strip">
+    <div class="capline">Opens in the browsers you already have</div>
+    <div class="strip-row">
+      <span class="namepill">Safari</span>
+      <span class="namepill">Chrome</span>
+      <span class="namepill">Firefox</span>
+      <span class="namepill">Edge</span>
+      <span class="namepill">Brave</span>
+      <span class="namepill">Arc</span>
+      <span class="namepill more">+ whatever else you install</span>
+    </div>
+  </div>
+
+  <div class="hero-win win">
+    <div class="titlebar"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="tt">Alex</span></div>
+    <div class="bubbles">
+      <div class="bubble">can you look at this before standup?</div>
+      <div class="bubble">here: <a>docs.example.com/q3-brief</a></div>
+    </div>
+  </div>
+
+  <div class="hero-picker picker" style="--k:1.5">
+    <div class="pk-head">
+      <div class="pk-url"><b>docs.example.com</b>/q3-brief</div>
+      <div class="pk-src"><span class="pk-srcicon"></span>from Messages</div>
+    </div>
+    <div class="pk-div"></div>
+    <div class="pk-rows">
+      <div class="pk-row on">
+        <span class="swatch" style="background:var(--c-green)">W</span>
+        <span class="pk-txt"><span class="pk-name">Work</span><span class="pk-sub">alex@northwind.example</span></span>
+        <span class="pk-key">1</span>
+      </div>
+      <div class="pk-row">
+        <span class="swatch" style="background:var(--c-purple)">P</span>
+        <span class="pk-txt"><span class="pk-name">Personal</span><span class="pk-sub">alex@example.com</span></span>
+        <span class="pk-key">2</span>
+      </div>
+      <div class="pk-row">
+        <span class="swatch" style="background:var(--c-orange)">D</span>
+        <span class="pk-txt"><span class="pk-name">Design</span><span class="pk-sub">design@northwind.example</span></span>
+        <span class="pk-key">3</span>
+      </div>
+      <div class="pk-row">
+        <span class="appchip safari">S</span>
+        <span class="pk-txt"><span class="pk-name">Safari</span></span>
+        <span class="pk-key">4</span>
+      </div>
+      <div class="pk-row">
+        <span class="appchip firefox">F</span>
+        <span class="pk-txt"><span class="pk-name">Firefox</span></span>
+        <span class="pk-key">5</span>
+      </div>
+      <div class="pk-row">
+        <span class="appchip edge">E</span>
+        <span class="pk-txt"><span class="pk-name">Microsoft Edge</span></span>
+        <span class="pk-key">6</span>
+      </div>
+    </div>
+  </div>
+  <svg class="cursor hero-cursor" viewBox="0 0 24 24"><use href="#pointer"/></svg>
+</section>
+
+<!-- ================================================ 2 — PROFILES ==== -->
+<section class="frame f-profiles on-dark">
+  <div class="pr-copy">
+    <div class="eyebrow">Chrome profiles</div>
+    <h1>Work or personal.<br>One key each.</h1>
+    <p class="lede">BrowBro reads the profiles Chrome already keeps on your Mac and lists every one of them as its own target — with its color, its initial and its account.</p>
+  </div>
+
+  <div class="pr-picker picker dark" style="--k:1.5">
+    <div class="pk-head">
+      <div class="pk-url"><b>app.example.com</b>/invoices</div>
+      <div class="pk-src"><span class="pk-srcicon" style="background:linear-gradient(180deg,#7a8cff,#4a5bd6)"></span>from Mail</div>
+    </div>
+    <div class="pk-div"></div>
+    <div class="pk-rows">
+      <div class="pk-row">
+        <span class="swatch" style="background:var(--c-green)">W</span>
+        <span class="pk-txt"><span class="pk-name">Work</span><span class="pk-sub">alex@northwind.example</span></span>
+        <span class="pk-key">1</span>
+      </div>
+      <div class="pk-row on">
+        <span class="swatch" style="background:var(--c-purple)">P</span>
+        <span class="pk-txt"><span class="pk-name">Personal</span><span class="pk-sub">alex@example.com</span></span>
+        <span class="pk-key">2</span>
+      </div>
+      <div class="pk-row">
+        <span class="swatch" style="background:var(--c-orange)">D</span>
+        <span class="pk-txt"><span class="pk-name">Design</span><span class="pk-sub">design@northwind.example</span></span>
+        <span class="pk-key">3</span>
+      </div>
+      <div class="pk-row">
+        <span class="swatch" style="background:var(--c-blue)">C</span>
+        <span class="pk-txt"><span class="pk-name">Client</span><span class="pk-sub">alex@acme.example</span></span>
+        <span class="pk-key">4</span>
+      </div>
+      <div class="pk-row">
+        <span class="appchip safari">S</span>
+        <span class="pk-txt"><span class="pk-name">Safari</span></span>
+        <span class="pk-key">5</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="pr-cards">
+    <div class="pcard">
+      <span class="swatch" style="background:var(--c-green)">W</span>
+      <div><div class="nm">Work</div><div class="kk"><i>1</i> opens it</div></div>
+    </div>
+    <div class="pcard">
+      <span class="swatch" style="background:var(--c-purple)">P</span>
+      <div><div class="nm">Personal</div><div class="kk"><i>2</i> opens it</div></div>
+    </div>
+    <div class="pcard">
+      <span class="swatch" style="background:var(--c-orange)">D</span>
+      <div><div class="nm">Design</div><div class="kk"><i>3</i> opens it</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================== 3 — KEYS ==== -->
+<section class="frame f-keys on-blue">
+  <div class="ky-copy">
+    <div class="eyebrow">Keyboard first</div>
+    <h1>One key.<br>Done.</h1>
+    <p class="lede">Press 1–9 to jump straight to a target, or type its first letter. Arrows move, Return opens, Esc cancels — and the link stays unopened.</p>
+  </div>
+
+  <div class="ky-picker picker" style="--k:1.5">
+    <div class="pk-head">
+      <div class="pk-url"><b>github.com</b>/browbro/pull/42</div>
+      <div class="pk-src"><span class="pk-srcicon" style="background:linear-gradient(180deg,#8f9bb3,#4c566a)"></span>from Terminal</div>
+    </div>
+    <div class="pk-div"></div>
+    <div class="pk-rows">
+      <div class="pk-row">
+        <span class="swatch" style="background:var(--c-green)">W</span>
+        <span class="pk-txt"><span class="pk-name">Work</span><span class="pk-sub">alex@northwind.example</span></span>
+        <span class="pk-key">1</span>
+      </div>
+      <div class="pk-row on">
+        <span class="swatch" style="background:var(--c-purple)">P</span>
+        <span class="pk-txt"><span class="pk-name">Personal</span><span class="pk-sub">alex@example.com</span></span>
+        <span class="pk-key">2</span>
+      </div>
+      <div class="pk-row">
+        <span class="swatch" style="background:var(--c-orange)">D</span>
+        <span class="pk-txt"><span class="pk-name">Design</span><span class="pk-sub">design@northwind.example</span></span>
+        <span class="pk-key">3</span>
+      </div>
+      <div class="pk-row">
+        <span class="appchip safari">S</span>
+        <span class="pk-txt"><span class="pk-name">Safari</span></span>
+        <span class="pk-key">4</span>
+      </div>
+      <div class="pk-row">
+        <span class="appchip firefox">F</span>
+        <span class="pk-txt"><span class="pk-name">Firefox</span></span>
+        <span class="pk-key">5</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="key-note">Press <strong>2</strong> — the link is already in Personal.</div>
+  <div class="keyboard">
+    <div class="cap"><b>1</b><small>Work</small></div>
+    <div class="cap down"><b>2</b><small>Personal</small></div>
+    <div class="cap"><b>3</b><small>Design</small></div>
+    <div class="cap"><b>4</b><small>Safari</small></div>
+    <div class="cap"><b>5</b><small>Firefox</small></div>
+    <div class="cap wide"><b>&#9166;</b><small>Highlighted</small></div>
+    <div class="cap wide"><b>esc</b><small>Don't open</small></div>
+  </div>
+</section>
+
+<!-- ================================================= 4 — PRIVATE ==== -->
+<section class="frame f-private">
+  <div class="pv-copy">
+    <div class="eyebrow">Private windows</div>
+    <h1>Private, on<br>purpose.</h1>
+    <p class="lede">Switch it on and the browsers that support it gain an incognito twin in the list. One extra row, one extra key — and never a private link opened by accident.</p>
+  </div>
+
+  <div class="pv-picker picker" style="--k:1.5">
+    <div class="pk-head">
+      <div class="pk-url"><b>news.example.org</b>/story/1138</div>
+      <div class="pk-src"><span class="pk-srcicon" style="background:linear-gradient(180deg,#7a8cff,#4a5bd6)"></span>from Mail</div>
+    </div>
+    <div class="pk-div"></div>
+    <div class="pk-rows">
+      <div class="pk-row">
+        <span class="swatch" style="background:var(--c-green)">W</span>
+        <span class="pk-txt"><span class="pk-name">Work</span><span class="pk-sub">alex@northwind.example</span></span>
+        <span class="pk-key">1</span>
+      </div>
+      <div class="pk-row">
+        <span class="appchip safari">S</span>
+        <span class="pk-txt"><span class="pk-name">Safari</span></span>
+        <span class="pk-key">2</span>
+      </div>
+      <div class="pk-row on">
+        <span class="swatch" style="background:var(--c-purple)">P<span class="badge"><svg viewBox="0 0 24 24"><use href="#shades"/></svg></span></span>
+        <span class="pk-txt"><span class="pk-name">Personal Incognito</span><span class="pk-sub">alex@example.com</span></span>
+        <span class="pk-key">3</span>
+      </div>
+      <div class="pk-row">
+        <span class="appchip firefox">F<span class="badge"><svg viewBox="0 0 24 24"><use href="#shades"/></svg></span></span>
+        <span class="pk-txt"><span class="pk-name">Firefox Private</span></span>
+        <span class="pk-key">4</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="pv-note">
+    <span class="dot"></span>
+    <div>Only browsers with a real private-window flag get a twin. <b>Safari has none</b>, so BrowBro never offers one that would quietly open a normal window.</div>
+  </div>
+
+  <div class="pv-toggle">
+    <div class="settings-row">
+      <div class="lbl">
+        <div class="t1">Private windows</div>
+        <div class="t2">Add a private variant for the browsers you choose.</div>
+      </div>
+      <span class="sw on"></span>
+    </div>
+    <div class="settings-row">
+      <span class="swatch" style="--k:1.35;background:var(--c-purple)">P</span>
+      <div class="lbl">
+        <div class="t1">Personal</div>
+        <div class="t2">Adds “Personal Incognito” to the picker.</div>
+      </div>
+      <span class="sw on"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================ 5 — MODIFIER ==== -->
+<section class="frame f-modifier">
+  <div class="md-copy">
+    <div class="eyebrow">Hold a modifier</div>
+    <h1>One browser,<br>unless I say.</h1>
+    <p class="lede">Let a plain click go straight to the browser you live in, and hold &#8997; only on the links you want to route yourself.</p>
+  </div>
+
+  <div class="md-note">
+    <div class="check">
+      <span class="tick"><svg viewBox="0 0 14 13"><use href="#tick"/></svg></span>
+      <div class="tx">You choose the browser a plain click uses</div>
+    </div>
+    <div class="check">
+      <span class="tick"><svg viewBox="0 0 14 13"><use href="#tick"/></svg></span>
+      <div class="tx">Off by default — BrowBro always asks until you say otherwise</div>
+    </div>
+  </div>
+
+  <div class="paths">
+    <div class="path">
+      <div class="ptitle">Plain click</div>
+      <div class="psub">Straight through — no picker at all</div>
+      <div class="prow">
+        <span class="gesture"><span class="gkey">Click</span></span>
+        <span class="flowarrow"></span>
+        <div class="minwin">
+          <div class="mw-bar"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span></div>
+          <div class="mw-body">
+            <span class="appchip safari">S</span>
+            <div>
+              <div class="t1">Safari opens</div>
+              <div class="t2">The default target you picked</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="path">
+      <div class="ptitle">Hold &#8997;, then click</div>
+      <div class="psub">&#8984;, &#8963; and &#8679; work just as well</div>
+      <div class="prow">
+        <span class="gesture">
+          <span class="gkey accent">&#8997;</span><span class="gkey">Click</span>
+        </span>
+        <span class="flowarrow"></span>
+        <div class="mini picker" style="--k:1">
+          <div class="pk-rows">
+            <div class="pk-row on">
+              <span class="swatch" style="background:var(--c-green)">W</span>
+              <span class="pk-txt"><span class="pk-name">Work</span><span class="pk-sub">alex@northwind.example</span></span>
+              <span class="pk-key">1</span>
+            </div>
+            <div class="pk-row">
+              <span class="swatch" style="background:var(--c-purple)">P</span>
+              <span class="pk-txt"><span class="pk-name">Personal</span><span class="pk-sub">alex@example.com</span></span>
+              <span class="pk-key">2</span>
+            </div>
+            <div class="pk-row">
+              <span class="appchip safari">S</span>
+              <span class="pk-txt"><span class="pk-name">Safari</span></span>
+              <span class="pk-key">3</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================== 6 — TRUST ==== -->
+<section class="frame f-trust">
+  <div class="tr-copy">
+    <div class="eyebrow">Reversible by design</div>
+    <h1>Undo it anytime.</h1>
+    <p class="lede">BrowBro asks before it takes over, remembers the browser it replaced, and puts it back the moment you want it back — no reinstall, no Terminal.</p>
+  </div>
+
+  <div class="tr-checks">
+    <div class="check">
+      <span class="tick"><svg viewBox="0 0 14 13"><use href="#tick"/></svg></span>
+      <div class="tx">Your old default is kept as a target<small>It stays one keystroke away in the picker.</small></div>
+    </div>
+    <div class="check">
+      <span class="tick"><svg viewBox="0 0 14 13"><use href="#tick"/></svg></span>
+      <div class="tx">One click restores it<small>Settings → Default browser → Restore.</small></div>
+    </div>
+    <div class="check">
+      <span class="tick"><svg viewBox="0 0 14 13"><use href="#tick"/></svg></span>
+      <div class="tx">Menu-bar only, no Dock icon<small>Launches at login so the picker is instant.</small></div>
+    </div>
+  </div>
+
+  <div class="onboard win">
+    <div class="titlebar"><span class="tl r"></span></div>
+    <div class="ob-body">
+      <div class="apptile"><svg viewBox="0 0 24 24" style="color:#fff"><use href="#brow"/></svg></div>
+      <h2>Every link, your call</h2>
+      <p>Make BrowBro your default browser and it'll quietly step in — the next time you click a link, it asks where to open it. That's the whole trick.</p>
+      <div class="prior">
+        <span class="appchip safari">S</span>
+        <div>
+          <div class="t1">Currently: Safari</div>
+          <div class="t2">We'll keep it as a target — restore it as default anytime.</div>
+        </div>
+      </div>
+      <div class="btn">Set BrowBro as default browser</div>
+      <div class="btn ghost">Maybe later</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================= 7 — CATALOG ==== -->
+<section class="frame f-catalog">
+  <div class="ct-copy">
+    <div class="eyebrow">Settings</div>
+    <h1>Your list.<br>Your order.</h1>
+    <p class="lede">Hide the browsers you never use and drag the ones you live in onto keys 1, 2 and 3. The picker shows exactly what you put in it.</p>
+  </div>
+
+  <div class="ct-note">
+    <div class="check">
+      <span class="tick"><svg viewBox="0 0 14 13"><use href="#tick"/></svg></span>
+      <div class="tx">Pre-highlight a favorite, or the one you used last</div>
+    </div>
+    <div class="check">
+      <span class="tick"><svg viewBox="0 0 14 13"><use href="#tick"/></svg></span>
+      <div class="tx">Down to a single target? BrowBro just opens it</div>
+    </div>
+  </div>
+
+  <div class="settings-win win">
+    <div class="titlebar"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="tt">BrowBro Settings</span></div>
+    <div class="sbody">
+      <div class="glabel">Default browser</div>
+      <div class="gcard">
+        <div class="grow">
+          <span class="okdot"></span>
+          <div class="lbl">
+            <div class="t1">BrowBro is your default browser</div>
+            <div class="t2">Every link you click now comes through the picker.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glabel">Shown in the picker <em>drag to reorder</em></div>
+      <div class="gcard">
+        <div class="grow">
+          <span class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="swatch" style="background:var(--c-green)">W</span>
+          <div class="lbl"><div class="t1">Work</div><div class="t2">alex@northwind.example</div></div>
+          <span class="sw on"></span>
+        </div>
+        <div class="grow drag">
+          <span class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="swatch" style="background:var(--c-purple)">P</span>
+          <div class="lbl"><div class="t1">Personal</div><div class="t2">alex@example.com</div></div>
+          <span class="sw on"></span>
+        </div>
+        <div class="grow">
+          <span class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="appchip safari">S</span>
+          <div class="lbl"><div class="t1">Safari</div></div>
+          <span class="sw on"></span>
+        </div>
+        <div class="grow">
+          <span class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="appchip firefox">F</span>
+          <div class="lbl"><div class="t1">Firefox</div></div>
+          <span class="sw on"></span>
+        </div>
+        <div class="grow">
+          <span class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="appchip edge">E</span>
+          <div class="lbl"><div class="t1">Microsoft Edge</div></div>
+          <span class="sw"></span>
+        </div>
+      </div>
+
+      <div class="glabel">Behavior</div>
+      <div class="gcard">
+        <div class="grow">
+          <div class="lbl">
+            <div class="t1">Remember the last target</div>
+            <div class="t2">Pre-highlight whatever you picked last time.</div>
+          </div>
+          <span class="sw on"></span>
+        </div>
+        <div class="grow">
+          <div class="lbl">
+            <div class="t1">Launch at login</div>
+            <div class="t2">Keep BrowBro ready so the picker is instant.</div>
+          </div>
+          <span class="sw on"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================= 8 — PRIVACY ==== -->
+<section class="frame f-privacy on-dark">
+  <div class="pz-copy">
+    <div class="eyebrow">Private by construction</div>
+    <h1>Nothing leaves<br>your Mac.</h1>
+    <p class="lede">No account, no analytics, no servers of its own. BrowBro reads Chrome's profile names from a folder you pick yourself, and routes every link locally.</p>
+  </div>
+
+  <div class="tiles">
+    <div class="tile">
+      <div class="t1">Links stay local</div>
+      <div class="t2">The URL goes from your click to your browser. Nowhere else.</div>
+    </div>
+    <div class="tile">
+      <div class="t1">You grant the folder</div>
+      <div class="t2">Chrome profiles appear only after you choose that folder in an open panel.</div>
+    </div>
+    <div class="tile">
+      <div class="t1">No account, ever</div>
+      <div class="t2">Nothing to sign up for, nothing to sign in to.</div>
+    </div>
+    <div class="tile">
+      <div class="t1">Open source, MIT</div>
+      <div class="t2">Every line of the routing logic is public and auditable.</div>
+    </div>
+  </div>
+
+  <div class="menubar-strip">
+    <span>Fri 9:41</span>
+    <span class="hot"><svg class="brow" viewBox="0 0 24 24" style="color:#fff"><use href="#brow"/></svg></span>
+  </div>
+
+  <div class="drop">
+    <div class="dropdown">
+      <div class="dd-head">
+        <div class="wordmark">
+          <svg viewBox="0 0 24 24" style="color:#6699f5"><use href="#brow"/></svg>
+          <span>BrowBro</span>
+        </div>
+        <span class="pill"><i></i>Default</span>
+      </div>
+      <div class="dd-sep"></div>
+      <div class="dd-label">Recent links</div>
+      <div class="dd-row hl">
+        <div class="u">docs.example.com/q3-brief</div>
+        <div class="m">2m ago · opened in Work</div>
+      </div>
+      <div class="dd-row">
+        <div class="u">app.example.com/invoices</div>
+        <div class="m">18m ago · opened in Personal</div>
+      </div>
+      <div class="dd-row">
+        <div class="u">news.example.org/story/1138</div>
+        <div class="m">1h ago · opened in Firefox Private</div>
+      </div>
+      <div class="dd-sep"></div>
+      <div class="dd-item">Settings…<span>⌘,</span></div>
+      <div class="dd-item">Quit BrowBro<span>⌘Q</span></div>
+    </div>
+  </div>
+</section>
+</body>
+</html>

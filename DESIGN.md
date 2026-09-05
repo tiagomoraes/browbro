@@ -41,7 +41,7 @@ or which **Chrome profile** — opens it. Open-source, in the spirit of Velja.
 | URL reception | `CFBundleURLTypes` http/https + `kAEGetURL` Apple Event |
 | Persistence | `UserDefaults` (v1 prefs); JSON/SwiftData for rules in milestone 2 |
 | Min OS | macOS 14 (Sonoma)+ |
-| Distribution | Local unsigned/ad-hoc build now → notarized DMG + Homebrew cask later |
+| Distribution | Dual channel: notarized DMG + Homebrew + Sparkle, and a sandboxed Mac App Store target (`BrowBroMAS`). See [docs/NOTARIZING.md](docs/NOTARIZING.md) and [docs/MAS.md](docs/MAS.md). |
 
 ## Out of scope → milestone 2+
 
