@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import os
 
-private let linkLog = Logger(subsystem: "so.aca.browbro", category: "links")
+private let linkLog = Logger(subsystem: "cloud.tiagomoraes.browbro", category: "links")
 
 /// Holds the links BrowBro has received. Shared, observable, main-actor bound
 /// (the Apple Event handler and the UI both touch it on the main thread).

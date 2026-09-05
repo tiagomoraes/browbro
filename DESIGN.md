@@ -4,7 +4,7 @@ BrowBro is a lightweight macOS menu-bar app that becomes your default browser an
 whenever you click a web link, pops an instant picker so you choose which browser —
 or which **Chrome profile** — opens it. Open-source, in the spirit of Velja.
 
-> Name: **BrowBro** (display) / `browbro` (repo, bundle id `so.aca.browbro`, CLI).
+> Name: **BrowBro** (display) / `browbro` (repo, bundle id `cloud.tiagomoraes.browbro`, CLI).
 
 ## How it works (three parts)
 

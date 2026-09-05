@@ -1,6 +1,6 @@
 name: BrowBro
 options:
-  bundleIdPrefix: so.aca
+  bundleIdPrefix: cloud.tiagomoraes
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
@@ -13,7 +13,7 @@ packages:
     from: "2.5.0"
 settings:
   base:
-    PRODUCT_BUNDLE_IDENTIFIER: so.aca.browbro
+    PRODUCT_BUNDLE_IDENTIFIER: cloud.tiagomoraes.browbro
     MARKETING_VERSION: "0.1.7"
     # CFBundleVersion. Sparkle compares this to decide if an update is newer, so
     # it MUST increase on every public release (see docs/UPDATES.md).
