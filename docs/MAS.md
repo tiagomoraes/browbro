@@ -158,9 +158,18 @@ The API key comes from App Store Connect → Users and Access → Integrations �
 Store Connect API → generate a key with the **App Manager** role. The `.p8`
 downloads exactly once; the Key ID and Issuer ID are on that page.
 
-The signing is manual, so the provisioning profile ships too. Export it from the
-Mac that has it — Xcode writes it to `~/Library/Developer/Xcode/UserData/Provisioning
-Profiles/` the first time it archives the target.
+The signing is manual, so the provisioning profile ships too — and it has to be a
+**manually created** one. The profiles Xcode leaves in
+`~/Library/Developer/Xcode/UserData/Provisioning Profiles/` after an Archive are
+Xcode-managed, and manual signing refuses them outright: *"is Xcode managed, but
+signing settings require a manually managed profile."* Create one at
+[Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/profiles/list)
+→ Profiles → **+** → **Mac App Store Connect** → App ID `cloud.tiagomoraes.browbro`
+→ the Apple Distribution certificate → name and download it.
+
+Its name doesn't have to match anything: the workflow reads the name out of the
+profile it installs and tells `ExportOptions.plist` at export time, so the secret
+can be rotated or renamed without touching the repo.
 
 Then, from a checkout — the values never pass through a browser field:
 
@@ -171,7 +180,7 @@ gh secret set APPSTORE_CONNECT_KEY_ID         # e.g. ABCD123456
 gh secret set APPSTORE_CONNECT_ISSUER_ID      # the UUID on the same page
 gh secret set APPSTORE_CONNECT_PRIVATE_KEY < ~/Downloads/AuthKey_ABCD123456.p8
 
-base64 -i ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/<uuid>.provisionprofile \
+base64 -i ~/Downloads/BrowBro_Mac_App_Store.provisionprofile \
   | gh secret set MAS_PROVISIONING_PROFILE_BASE64
 ```
 

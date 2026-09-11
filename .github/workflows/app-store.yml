@@ -168,27 +168,35 @@ jobs:
             PROFILE="$dir/browbro-mas.provisionprofile"
           done
 
-          # A profile that doesn't match what ExportOptions asks for fails much later
-          # with "No profiles for '…' were found", which says nothing about why. Read
-          # the expectation out of the plist so there is one source of truth.
           security cms -D -i "$PROFILE" > "$RUNNER_TEMP/profile.plist"
-          NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" "$RUNNER_TEMP/profile.plist")
-          APPID=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:com.apple.application-identifier" "$RUNNER_TEMP/profile.plist")
+          read_key() { /usr/libexec/PlistBuddy -c "Print $1" "$RUNNER_TEMP/profile.plist" 2>/dev/null; }
+          NAME=$(read_key ":Name")
+          APPID=$(read_key ":Entitlements:com.apple.application-identifier")
           echo "Profile: $NAME"
           echo "App ID:  $APPID"
-          echo "Expires: $(/usr/libexec/PlistBuddy -c 'Print :ExpirationDate' "$RUNNER_TEMP/profile.plist")"
+          echo "Expires: $(read_key ':ExpirationDate')"
 
-          EXPECTED=$(/usr/libexec/PlistBuddy -c \
-            "Print :provisioningProfiles:cloud.tiagomoraes.browbro" \
-            packaging/mas/ExportOptions.plist)
-          if [ "$NAME" != "$EXPECTED" ]; then
-            echo "✗ Profile is named '$NAME' but ExportOptions.plist asks for '$EXPECTED'." >&2
-            exit 1
-          fi
           case "$APPID" in
             *.cloud.tiagomoraes.browbro) ;;
             *) echo "✗ Profile is for '$APPID', not cloud.tiagomoraes.browbro." >&2; exit 1 ;;
           esac
+
+          # Xcode writes its own profiles when it archives with automatic signing,
+          # and those are the ones lying around on a developer's Mac — but manual
+          # signing refuses them ("is Xcode managed, but signing settings require a
+          # manually managed profile"). The profile has to be created in the
+          # developer portal instead. Catch it here, where the message can say so,
+          # rather than at export where it can't.
+          if [ "$(read_key ':IsXcodeManaged')" = "true" ]; then
+            echo "✗ '$NAME' is an Xcode-managed profile; manual signing needs one" >&2
+            echo "  created at developer.apple.com → Certificates, Identifiers &" >&2
+            echo "  Profiles → Profiles → + → Mac App Store Connect. See docs/MAS.md." >&2
+            exit 1
+          fi
+
+          # The installed profile names itself; ExportOptions is told at export time.
+          # Nothing to keep in sync, so the secret can be rotated or renamed freely.
+          echo "PROFILE_NAME=$NAME" >> "$GITHUB_ENV"
           rm -f "$RUNNER_TEMP/profile.plist"
 
       - name: Generate the Xcode project
@@ -250,10 +258,13 @@ jobs:
           set -euo pipefail
           # The committed ExportOptions.plist writes a .pkg to disk, which is what
           # you want when exporting by hand. CI wants the upload, so flip that one
-          # key on a copy rather than keeping two near-identical files in sync.
+          # key on a copy rather than keeping two near-identical files in sync, and
+          # name the profile that actually got installed.
           OPTS="$RUNNER_TEMP/ExportOptions-upload.plist"
           cp packaging/mas/ExportOptions.plist "$OPTS"
           plutil -replace destination -string upload "$OPTS"
+          /usr/libexec/PlistBuddy -c \
+            "Set :provisioningProfiles:cloud.tiagomoraes.browbro $PROFILE_NAME" "$OPTS"
 
           # No -allowProvisioningUpdates: signing is manual now, and asking for
           # cloud signing is what made a non-Admin key fail here. The API key stays
@@ -275,10 +286,15 @@ jobs:
           set -euo pipefail
           # Local signing against the installed profile, writing a .pkg to disk.
           # Nothing leaves the runner, so there is nothing to authenticate.
+          OPTS="$RUNNER_TEMP/ExportOptions-dry.plist"
+          cp packaging/mas/ExportOptions.plist "$OPTS"
+          /usr/libexec/PlistBuddy -c \
+            "Set :provisioningProfiles:cloud.tiagomoraes.browbro $PROFILE_NAME" "$OPTS"
+
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE" \
             -exportPath "$EXPORT_DIR" \
-            -exportOptionsPlist packaging/mas/ExportOptions.plist
+            -exportOptionsPlist "$OPTS"
 
       - name: Upload the .pkg as a run artifact
         if: ${{ inputs.dry_run }}
