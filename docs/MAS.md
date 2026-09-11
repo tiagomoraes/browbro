@@ -113,6 +113,25 @@ That writes a `.pkg`. Upload it with Transporter, or set `destination` in
 TestFlight for Mac is available once the build is processed — use it before
 submitting for review.
 
+### Upload validation, before review
+
+Connect validates the bundle at upload, long before a human sees it. Two rejections
+have actually happened here:
+
+- **ITMS-90301** — *"Apple is not currently accepting applications built with this
+  version of Xcode."* A beta or Release Candidate Xcode cannot upload, even though it
+  builds and archives fine. Check `xcodebuild -version`; the toolchain has to be a
+  released Xcode (26 or later, per
+  [upcoming requirements](https://developer.apple.com/news/upcoming-requirements/)).
+  Keep a shipped Xcode alongside the seed and select it with
+  `DEVELOPER_DIR=/Applications/Xcode-26.app/Contents/Developer`.
+- **ITMS-90243** — every `CFBundleDocumentTypes` entry needs `CFBundleTypeName`
+  (and Connect warns separately about a missing `LSHandlerRank`). Both are in
+  `Resources/Info-MAS.plist` now, and `build-mas.sh` fails without the first.
+
+A failed upload does not burn the build number: the same `CURRENT_PROJECT_VERSION`
+can be re-uploaded once the cause is fixed.
+
 ## Dual channel
 
 Keep shipping the notarized DMG as today (`packaging/notarize/notarize-release.sh`,

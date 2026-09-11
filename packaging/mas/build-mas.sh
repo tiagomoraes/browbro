@@ -42,6 +42,12 @@ if ! codesign -d --entitlements :- "$APP" 2>/dev/null | grep -q "com.apple.secur
   echo "✗ App Sandbox entitlement missing from $APP" >&2
   exit 1
 fi
+if ! /usr/libexec/PlistBuddy -c "Print :CFBundleDocumentTypes:0:CFBundleTypeName" \
+  "$APP/Contents/Info.plist" >/dev/null 2>&1; then
+  echo "✗ CFBundleDocumentTypes needs CFBundleTypeName — App Store Connect rejects the" >&2
+  echo "  upload with ITMS-90243 otherwise." >&2
+  exit 1
+fi
 
 echo "✅ $APP"
 echo "   Sandboxed, no Sparkle. Drive a link without touching /Applications:"
