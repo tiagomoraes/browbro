@@ -156,32 +156,40 @@ jobs:
 
       - name: Archive BrowBroMAS
         env:
-          KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
           BUILD_NUMBER: ${{ inputs.build_number }}
         run: |
           set -euo pipefail
           # A build number may only be used once per version. Overriding it is how
           # you re-upload after Connect accepted a build and review bounced it.
-          version_override=()
+          # A plain string, not an array: the runner's /bin/bash is 3.2, where
+          # expanding an empty array under `set -u` is itself an error. A build
+          # number is digits, so the unquoted expansion below can't word-split.
+          version_override=""
           if [ -n "$BUILD_NUMBER" ]; then
-            version_override=(CURRENT_PROJECT_VERSION="$BUILD_NUMBER")
+            version_override="CURRENT_PROJECT_VERSION=$BUILD_NUMBER"
             echo "Overriding CFBundleVersion → $BUILD_NUMBER"
           fi
 
-          # -allowProvisioningUpdates + the API key let xcodebuild fetch (or create)
-          # the Mac App Store provisioning profile, so no profile has to be checked
-          # in or kept in sync by hand.
+          # Sign the archive manually. The target is set up for automatic signing,
+          # which archives with an Apple Development identity and only switches to
+          # distribution at export. That identity deliberately isn't in CI's p12 —
+          # the runner gets what it needs to ship to the store and nothing else —
+          # and overriding CODE_SIGN_IDENTITY on top of automatic signing is a hard
+          # error ("conflicting provisioning settings"). Overriding the style too
+          # takes the decision away from Xcode instead of arguing with it.
+          #
+          # No profile here: the archive doesn't need one, and -exportArchive fetches
+          # the Mac App Store profile with the API key and embeds it when it re-signs.
+          # Same shape as the Developer ID path in notarize-release.sh.
           xcodebuild -project BrowBro.xcodeproj -scheme BrowBroMAS \
             -configuration Release -destination "generic/platform=macOS" \
             -archivePath "$ARCHIVE" \
             ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
             OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID" \
+            $version_override \
             archive
 
       - name: Verify the store binary
