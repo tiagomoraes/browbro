@@ -1,15 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  `xcodebuild -exportArchive` options for the Mac App Store build.
+
+  Manual signing, on purpose. Automatic (cloud) signing needs an App Store Connect
+  API key with the Admin role — a non-Admin key fails with "Cloud signing
+  permission error" and "No profiles were found" — and a CI credential that can
+  only upload builds is worth more than one that can manage the whole account. So
+  the profile travels with the build instead: installed from a secret in CI, or
+  already in ~/Library/MobileDevice/Provisioning Profiles when exporting by hand.
+
+  The profile named here expires 2027-09-10 and has to be re-exported then; the CI
+  run prints its name and expiry every time so that isn't a surprise. See docs/MAS.md.
+-->
 <plist version="1.0">
 <dict>
 	<key>method</key>
 	<string>app-store-connect</string>
 	<key>destination</key>
 	<string>export</string>
-	<key>signingStyle</key>
-	<string>automatic</string>
 	<key>teamID</key>
 	<string>QD5A8CZK76</string>
+	<key>signingStyle</key>
+	<string>manual</string>
+	<!-- Apple Distribution signs the app; the installer certificate signs the .pkg
+	     that carries it. Both live in the one p12 the workflow imports. -->
+	<key>signingCertificate</key>
+	<string>Apple Distribution</string>
+	<key>installerSigningCertificate</key>
+	<string>3rd Party Mac Developer Installer</string>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>cloud.tiagomoraes.browbro</key>
+		<string>Mac Team Store Provisioning Profile: cloud.tiagomoraes.browbro</string>
+	</dict>
 	<key>uploadSymbols</key>
 	<true/>
 </dict>

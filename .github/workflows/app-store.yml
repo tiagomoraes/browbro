@@ -151,6 +151,46 @@ jobs:
           chmod 600 "$KEY_PATH"
           echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
+      - name: Install the provisioning profile
+        env:
+          PROFILE_BASE64: ${{ secrets.MAS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          : "${PROFILE_BASE64:?MAS_PROVISIONING_PROFILE_BASE64 secret is not set — see docs/MAS.md}"
+
+          # Xcode has looked in both of these across versions. Writing both costs
+          # nothing and removes a failure that depends on the runner image.
+          PROFILE=""
+          for dir in "$HOME/Library/MobileDevice/Provisioning Profiles" \
+                     "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
+            mkdir -p "$dir"
+            echo "$PROFILE_BASE64" | base64 --decode > "$dir/browbro-mas.provisionprofile"
+            PROFILE="$dir/browbro-mas.provisionprofile"
+          done
+
+          # A profile that doesn't match what ExportOptions asks for fails much later
+          # with "No profiles for '…' were found", which says nothing about why. Read
+          # the expectation out of the plist so there is one source of truth.
+          security cms -D -i "$PROFILE" > "$RUNNER_TEMP/profile.plist"
+          NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" "$RUNNER_TEMP/profile.plist")
+          APPID=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:com.apple.application-identifier" "$RUNNER_TEMP/profile.plist")
+          echo "Profile: $NAME"
+          echo "App ID:  $APPID"
+          echo "Expires: $(/usr/libexec/PlistBuddy -c 'Print :ExpirationDate' "$RUNNER_TEMP/profile.plist")"
+
+          EXPECTED=$(/usr/libexec/PlistBuddy -c \
+            "Print :provisioningProfiles:cloud.tiagomoraes.browbro" \
+            packaging/mas/ExportOptions.plist)
+          if [ "$NAME" != "$EXPECTED" ]; then
+            echo "✗ Profile is named '$NAME' but ExportOptions.plist asks for '$EXPECTED'." >&2
+            exit 1
+          fi
+          case "$APPID" in
+            *.cloud.tiagomoraes.browbro) ;;
+            *) echo "✗ Profile is for '$APPID', not cloud.tiagomoraes.browbro." >&2; exit 1 ;;
+          esac
+          rm -f "$RUNNER_TEMP/profile.plist"
+
       - name: Generate the Xcode project
         run: xcodegen generate
 
@@ -215,11 +255,13 @@ jobs:
           cp packaging/mas/ExportOptions.plist "$OPTS"
           plutil -replace destination -string upload "$OPTS"
 
+          # No -allowProvisioningUpdates: signing is manual now, and asking for
+          # cloud signing is what made a non-Admin key fail here. The API key stays
+          # because it is also what authenticates the upload.
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE" \
             -exportPath "$EXPORT_DIR" \
             -exportOptionsPlist "$OPTS" \
-            -allowProvisioningUpdates \
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID"
@@ -229,19 +271,14 @@ jobs:
 
       - name: Export a .pkg without uploading
         if: ${{ inputs.dry_run }}
-        env:
-          KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
         run: |
           set -euo pipefail
+          # Local signing against the installed profile, writing a .pkg to disk.
+          # Nothing leaves the runner, so there is nothing to authenticate.
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE" \
             -exportPath "$EXPORT_DIR" \
-            -exportOptionsPlist packaging/mas/ExportOptions.plist \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID"
+            -exportOptionsPlist packaging/mas/ExportOptions.plist
 
       - name: Upload the .pkg as a run artifact
         if: ${{ inputs.dry_run }}
