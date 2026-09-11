@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Bundle ID is now `cloud.tiagomoraes.browbro`.** The `so.aca.browbro` identity is
+  retired. Existing 0.1.x DMG / Homebrew installs will not Sparkle-update across
+  this change (macOS treats it as a different app). Re-download, or `brew
+  reinstall --cask browbro`. TCC and default-browser status start over.
+
+### Added
+
+- **Mac App Store channel.** A second target, `BrowBroMAS`, builds the sandboxed,
+  Sparkle-free binary the store requires (guideline 2.4.5). Chrome profile access
+  persists via a security-scoped bookmark; profile / private-window launches go
+  through `NSWorkspace` instead of `Process()`. Direct DMG + Homebrew + Sparkle
+  builds are unchanged. See [docs/MAS.md](docs/MAS.md).
+
 ## [0.1.7] - 2026-08-27
 
 ### Changed

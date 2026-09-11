@@ -1,7 +1,9 @@
 # Signing & notarizing BrowBro
 
 Public releases are signed with an Apple **Developer ID Application** certificate,
-built with the **hardened runtime**, and **notarized** by Apple. A notarized,
+built with the **hardened runtime**, and **notarized** by Apple. This document is
+the outside-the-store path. The Mac App Store binary is a different target and
+a different certificate — see [MAS.md](MAS.md). A notarized,
 stapled build opens on first launch with no "unidentified developer" block and no
 detour through System Settings — and it's a prerequisite for landing in
 homebrew-cask core.

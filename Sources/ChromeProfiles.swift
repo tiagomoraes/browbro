@@ -12,10 +12,12 @@ struct ChromeProfile: Identifiable, Hashable {
 /// Reads Chrome's `Local State` JSON and returns its profiles.
 /// (Same structure verified against the real file; JSONSerialization keeps us
 /// resilient to Chrome's large, frequently-changing schema.)
+@MainActor
 enum ChromeProfiles {
     static var localStateURL: URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/Google/Chrome/Local State")
+        // Routed through ChromeAccess so a sandboxed build reads via the
+        // security-scoped bookmark, not the container home.
+        ChromeAccess.chromeSupportFolder.appendingPathComponent("Local State")
     }
 
     static func load() -> [ChromeProfile] {

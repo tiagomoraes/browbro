@@ -65,10 +65,12 @@ struct MenuDropdownView: View {
                 SettingsWindowController.shared.show()
             }
 
+            #if SPARKLE
             MenuRow(title: "Check for Updates…") {
                 closeMenuWindow()
                 UpdaterController.shared.checkForUpdates()
             }
+            #endif
 
             MenuRow(title: "Support BrowBro", shortcut: "♥") {
                 closeMenuWindow()

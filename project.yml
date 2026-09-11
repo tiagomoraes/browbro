@@ -1,6 +1,6 @@
 name: BrowBro
 options:
-  bundleIdPrefix: so.aca
+  bundleIdPrefix: cloud.tiagomoraes
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
@@ -8,12 +8,14 @@ packages:
   # In-app updates for the DMG/Homebrew build (Sparkle is the standard for
   # non-App-Store macOS apps). Trust is anchored on an EdDSA signature over each
   # update archive, independent of Apple notarization — see docs/UPDATES.md.
+  # The Mac App Store target (BrowBroMAS) does not link Sparkle: guideline
+  # 2.4.5(vii) requires MAS apps to update only through the store. See docs/MAS.md.
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     from: "2.5.0"
 settings:
   base:
-    PRODUCT_BUNDLE_IDENTIFIER: so.aca.browbro
+    PRODUCT_BUNDLE_IDENTIFIER: cloud.tiagomoraes.browbro
     MARKETING_VERSION: "0.1.7"
     # CFBundleVersion. Sparkle compares this to decide if an update is newer, so
     # it MUST increase on every public release (see docs/UPDATES.md).
@@ -35,22 +37,43 @@ settings:
     # Don't inject get-task-allow in Debug: it weakens the app's TCC standing.
     CODE_SIGN_INJECT_BASE_ENTITLEMENTS: "NO"
     ENABLE_HARDENED_RUNTIME: "NO"
-targets:
-  BrowBro:
+targetTemplates:
+  BrowBroApp:
     type: application
     platform: macOS
     sources:
       - Sources
       - path: Resources/AppIcon.icns
         buildPhase: resources
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "NO"
+        PRODUCT_NAME: BrowBro
+        COMBINE_HIDPI_IMAGES: "YES"
+targets:
+  BrowBro:
+    templates: [BrowBroApp]
     dependencies:
       - package: Sparkle
     settings:
       base:
-        GENERATE_INFOPLIST_FILE: "NO"
         INFOPLIST_FILE: Resources/Info.plist
-        PRODUCT_NAME: BrowBro
-        COMBINE_HIDPI_IMAGES: "YES"
+        # SPARKLE compilation condition wires in-app updates. The MAS target
+        # defines APPSTORE instead and does not link the framework.
+        OTHER_SWIFT_FLAGS: "$(inherited) -D SPARKLE"
+  BrowBroMAS:
+    templates: [BrowBroApp]
+    settings:
+      base:
+        INFOPLIST_FILE: Resources/Info-MAS.plist
+        OTHER_SWIFT_FLAGS: "$(inherited) -D APPSTORE"
+        CODE_SIGN_ENTITLEMENTS: packaging/mas/BrowBro.entitlements
+        ENABLE_HARDENED_RUNTIME: "YES"
+        # Automatic signing lets Archive → Distribute App pick Apple Distribution
+        # and a Mac App Store Connect profile. Local Run still uses the
+        # Development identity from the team, which is enough to test the sandbox.
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "Apple Development"
 schemes:
   BrowBro:
     build:
@@ -58,3 +81,11 @@ schemes:
         BrowBro: all
     run:
       config: Debug
+  BrowBroMAS:
+    build:
+      targets:
+        BrowBroMAS: all
+    run:
+      config: Debug
+    archive:
+      config: Release

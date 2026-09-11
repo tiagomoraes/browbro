@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Mac App Store requires App Sandbox (guideline 2.4.5(i)). -->
+  <key>com.apple.security.app-sandbox</key>
+  <true/>
+  <!-- Chrome profiles: the user picks ~/Library/Application Support/Google/Chrome
+       in an open panel; we persist that grant as an app-scoped bookmark. -->
+  <key>com.apple.security.files.user-selected.read-only</key>
+  <true/>
+  <key>com.apple.security.files.bookmarks.app-scope</key>
+  <true/>
+</dict>
+</plist>

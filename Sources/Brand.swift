@@ -95,7 +95,17 @@ enum BBLinks {
     static let repo = URL(string: "https://github.com/tiagomoraes/browbro")!
     static let sponsors = URL(string: "https://github.com/sponsors/tiagomoraes")!
     static let kofi = URL(string: "https://ko-fi.com/tiagomoraes")!
-    static let supportPage = URL(string: "https://browbro.tiagomoraes.cloud/#support")!
+    static let privacy = URL(string: "https://browbro.tiagomoraes.cloud/privacy")!
+    /// Direct builds send "Support" to the donation block. The Mac App Store
+    /// build must not steer people to a payment page (guideline 3.1.1), so it
+    /// opens the repo instead.
+    static let supportPage: URL = {
+        #if APPSTORE
+        repo
+        #else
+        URL(string: "https://browbro.tiagomoraes.cloud/#support")!
+        #endif
+    }()
 }
 
 // MARK: - Menu-bar status item glyph

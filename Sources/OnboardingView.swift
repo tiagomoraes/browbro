@@ -38,6 +38,7 @@ struct OnboardingView: View {
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
                 .frame(maxWidth: 320)
+                .fixedSize(horizontal: false, vertical: true)
 
             if let current = currentDefault {
                 HStack(spacing: 8) {

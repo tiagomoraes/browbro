@@ -2,7 +2,11 @@
 
 BrowBro ships outside the App Store (DMG + Homebrew cask), so it updates itself
 with [Sparkle](https://sparkle-project.org) — the standard framework for
-non-App-Store macOS apps. From **Settings → Updates** (or the menu-bar
+non-App-Store macOS apps. Sparkle only updates an install whose bundle ID
+matches the new build (`cloud.tiagomoraes.browbro`). The last `so.aca.browbro`
+release is 0.1.7 — those copies need a fresh download. The Mac App Store binary (`BrowBroMAS`) does not
+include Sparkle; those copies update through the store (guideline 2.4.5(vii)).
+See [MAS.md](MAS.md). From **Settings → Updates** (or the menu-bar
 **Check for Updates…** item) BrowBro checks a signed feed, and when a newer build
 exists it downloads, verifies, and installs it in place, then relaunches. No
 re-download, no drag-to-Applications.

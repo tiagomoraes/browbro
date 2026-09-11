@@ -1,0 +1,215 @@
+# Publishing BrowBro on the Mac App Store
+
+The DMG + Homebrew + Sparkle channel is unchanged. This is a second binary of the
+same app (`cloud.tiagomoraes.browbro`) built from the `BrowBroMAS` target: App Sandbox on,
+Sparkle off, payment links off. Guideline [2.4.5](https://developer.apple.com/app-store/review/guidelines/)
+is the rulebook.
+
+## What the MAS target changes
+
+| | `BrowBro` (DMG / Homebrew) | `BrowBroMAS` |
+|---|---|---|
+| Scheme | `BrowBro` | `BrowBroMAS` |
+| Sparkle | linked (`-D SPARKLE`) | **not linked** (`-D APPSTORE`) |
+| Sandbox | off | on (`packaging/mas/BrowBro.entitlements`) |
+| Chrome folder | TCC + real-home path | NSOpenPanel + security-scoped bookmark |
+| Flagged launches (profile / private window) | `Process()` of the browser binary (ADR-0001) | `NSWorkspace.openApplication` with `OpenConfiguration.arguments` |
+| Updates UI | Settings + menu item | omitted — the store updates the app |
+| Ko-fi / Sponsors | Settings | omitted (guideline 3.1.1) |
+| Info.plist | `Resources/Info.plist` | `Resources/Info-MAS.plist` (no `SUFeedURL`) |
+
+Same bundle id, same `PRODUCT_NAME`. Do **not** install a MAS build over
+`/Applications/BrowBro.app` — that replaces the daily Sparkle app and resets TCC.
+
+## Local sandbox test
+
+```sh
+packaging/mas/build-mas.sh            # Debug → build/mas/Build/Products/Debug/BrowBro.app
+open -a "$PWD/build/mas/Build/Products/Debug/BrowBro.app" "https://example.com/mas-test"
+```
+
+The script refuses to succeed if Sparkle is in the bundle, if `SUFeedURL` leaked
+into Info.plist, or if the App Sandbox entitlement is missing.
+
+Prove the three sandbox-sensitive paths before submitting:
+
+1. **Default browser** — Settings → Set as default, click a link in Notes.
+2. **Chrome profiles** — Settings → Grant access… and pick
+   `~/Library/Application Support/Google/Chrome`. Quit and relaunch: the grant
+   must survive (bookmark). Profiles should appear in the picker.
+3. **Profile / private window** — pick a Chrome profile and a Private Window
+   variant. The flags have to arrive; a sandbox-blocked `Process()` used to fail
+   silently here.
+
+`/usr/bin/log show --last 5m --info --predicate 'subsystem == "cloud.tiagomoraes.browbro"'`
+logs picker decisions and `category == "launch"` workspace launches.
+
+## One-time App Store Connect setup
+
+You already have the Apple Developer Program (team `QD5A8CZK76`) and a Developer
+ID for notarization. The store needs extra pieces the DMG never used:
+
+1. Sign the **Paid Apps Agreement** in App Store Connect (even for a free app).
+2. [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/identifiers/list):
+   an App ID for `cloud.tiagomoraes.browbro` with Mac enabled. Automatic signing on
+   `BrowBroMAS` will create this on first Archive if it doesn't exist.
+3. An **Apple Distribution** certificate (Xcode → Settings → Accounts → Manage
+   Certificates → + → Apple Distribution). Distinct from Developer ID.
+4. App Store Connect → My Apps → (+) → New Mac App:
+   - Bundle ID `cloud.tiagomoraes.browbro`
+   - SKU e.g. `browbro` (immutable)
+   - Category: *Utilities* (matches `LSApplicationCategoryType`)
+
+## Product page (required to submit)
+
+- **Privacy policy URL** — `https://browbro.tiagomoraes.cloud/privacy` (`site/privacy/`).
+- **Support URL** — `https://browbro.tiagomoraes.cloud` or the GitHub repo.
+- **App Privacy** questionnaire — BrowBro does not collect data; Chrome profile
+  names never leave the device. Answer accordingly.
+- **Age rating** questionnaire.
+- **Screenshots** — eight English marketing frames at 2560×1600 (16:10, no
+  alpha). Source `packaging/mas/screenshots/mock.html`; render with
+  `packaging/mas/render-screenshots.sh`. Fictional UI only (Work / Personal /
+  Design / Client, Safari, Firefox, Edge) — never a capture of a real machine.
+  See `packaging/mas/listing.md` for upload order.
+- **App preview** (optional) — `packaging/mas/previews/01-every-link.mp4`, built
+  by `packaging/mas/render-preview.sh`. macOS previews are **1920×1080 (16:9)**,
+  15–30s, ≤30fps — a different shape from the screenshots, and Connect rejects
+  2560×1600 here.
+- **App Store icon** — 1024×1024 PNG, no transparency. The bundled `.icns` is
+  not this file; export a square fill (Apple applies the squircle).
+- **Review notes** — BrowBro is not a web browser. It registers as the default
+  http(s) handler and forwards the URL to the user's installed browsers. To
+  test: Settings → Set as default → click a link in Mail or Notes → pick Chrome.
+  Chrome profiles need the Grant access… open panel.
+
+## Archive and upload
+
+From Xcode (recommended the first time):
+
+1. Scheme `BrowBroMAS`, destination **Any Mac** (or My Mac).
+2. Product → Archive.
+3. Organizer → Distribute App → App Store Connect → Upload.
+   Automatic signing on this target picks Apple Distribution and a Mac App Store
+   Connect profile.
+
+From the command line, after the app record exists:
+
+```sh
+xcodegen generate
+xcodebuild -project BrowBro.xcodeproj -scheme BrowBroMAS -configuration Release \
+  -destination "generic/platform=macOS" \
+  -archivePath build/BrowBro.xcarchive archive
+
+xcodebuild -exportArchive \
+  -archivePath build/BrowBro.xcarchive \
+  -exportPath build/mas-export \
+  -exportOptionsPlist packaging/mas/ExportOptions.plist
+```
+
+That writes a `.pkg`. Upload it with Transporter, or set `destination` in
+`ExportOptions.plist` to `upload`.
+
+TestFlight for Mac is available once the build is processed — use it before
+submitting for review.
+
+### Upload validation, before review
+
+Connect validates the bundle at upload, long before a human sees it. Two rejections
+have actually happened here:
+
+- **ITMS-90301** — *"Apple is not currently accepting applications built with this
+  version of Xcode."* A beta or Release Candidate Xcode cannot upload, even though it
+  builds and archives fine. Check `xcodebuild -version`; the toolchain has to be a
+  released Xcode (26 or later, per
+  [upcoming requirements](https://developer.apple.com/news/upcoming-requirements/)).
+  Keep a shipped Xcode alongside the seed and select it with
+  `DEVELOPER_DIR=/Applications/Xcode-26.app/Contents/Developer`.
+- **ITMS-90243** — every `CFBundleDocumentTypes` entry needs `CFBundleTypeName`
+  (and Connect warns separately about a missing `LSHandlerRank`). Both are in
+  `Resources/Info-MAS.plist` now, and `build-mas.sh` fails without the first.
+
+A failed upload does not burn the build number: the same `CURRENT_PROJECT_VERSION`
+can be re-uploaded once the cause is fixed.
+
+## Uploading from CI
+
+[`.github/workflows/app-store.yml`](../.github/workflows/app-store.yml) archives
+`BrowBroMAS` on a `macos-26` runner and uploads it to Connect. It exists because of
+the trap above: a maintainer on a macOS seed has *no* usable toolchain — the only
+Xcode that runs on a prerelease macOS is the one Connect refuses, and an Xcode old
+enough to be accepted won't launch there
+([Apple DTS](https://developer.apple.com/forums/thread/831716)). The runner is a
+production macOS with a production Xcode, which is what Apple asks you to submit
+from anyway.
+
+Uploading is not publishing. The build lands in Connect and still has to be
+attached to a version and submitted by hand, so running this on every release is
+safe. The DMG channel is untouched — it still needs the Developer ID identity and
+the EdDSA update key, which stay on the maintainer's machine.
+
+### Secrets, once
+
+Both certificates go in **one** `.p12`: Apple Distribution signs the app, 3rd Party
+Mac Developer Installer signs the `.pkg` around it. Keychain Access → select both
+identities (⌘-click) → right-click → *Export 2 items…* → `.p12` with a password.
+
+The API key comes from App Store Connect → Users and Access → Integrations → App
+Store Connect API → generate a key with the **App Manager** role. The `.p8`
+downloads exactly once; the Key ID and Issuer ID are on that page.
+
+Then, from a checkout — the values never pass through a browser field:
+
+```sh
+base64 -i ~/Desktop/BrowBro-mas.p12 | gh secret set MAS_CERT_P12_BASE64
+gh secret set MAS_CERT_P12_PASSWORD           # the p12 export password
+gh secret set APPSTORE_CONNECT_KEY_ID         # e.g. ABCD123456
+gh secret set APPSTORE_CONNECT_ISSUER_ID      # the UUID on the same page
+gh secret set APPSTORE_CONNECT_PRIVATE_KEY < ~/Downloads/AuthKey_ABCD123456.p8
+```
+
+The workflow fails with the missing secret's name rather than a signing error
+several minutes in.
+
+### Running it
+
+`workflow_dispatch` only appears once the workflow file is on the **default
+branch** (`develop`) — so this has to be merged before the first manual run, even
+though the run itself can build any ref.
+
+```sh
+gh workflow run app-store.yml -f ref=develop          # archive + upload
+gh workflow run app-store.yml -f dry_run=true         # archive, verify, keep the .pkg
+gh workflow run app-store.yml -f build_number=8       # re-upload after a rejection
+```
+
+A published GitHub Release triggers it with no inputs, building that release's tag.
+
+`MAX_XCODE_MAJOR` in the workflow pins the toolchain to a major Connect accepts.
+Raise it once Apple starts accepting the next one; the pin is there so a runner
+image bump can't silently start producing builds that fail validation.
+
+## Dual channel
+
+Keep shipping the notarized DMG as today (`packaging/notarize/notarize-release.sh`,
+[NOTARIZING.md](NOTARIZING.md), [UPDATES.md](UPDATES.md)). Users pick a channel:
+
+- **DMG / Homebrew** — Sparkle updates, Developer ID signature.
+- **Mac App Store** — store updates, Apple Distribution signature.
+
+Switching channels resets TCC (different signing identity) and does not carry
+UserDefaults: the sandboxed app stores prefs in its container,
+`~/Library/Containers/cloud.tiagomoraes.browbro/`, not `~/Library/Preferences/cloud.tiagomoraes.browbro.plist`.
+
+Do not create a second bundle id. Two products, two TCC grants, two profile lists.
+
+## First-review expectancies
+
+A "default browser that doesn't render pages" is an established Mac App Store
+category (Velja, Choosy). Still write the review notes as if the reviewer has
+never seen one. Common bounce-backs:
+
+- Sparkle / `SUFeedURL` still in the bundle → this target is built so that can't happen.
+- Chrome profiles empty because they skipped Grant access… → spell out the panel in the notes.
+- Profile / incognito opens the wrong window → that's the `NSWorkspace` flags path; verify it locally first.
+- Ko-fi / Sponsors in the binary → omitted from `BrowBroMAS`.

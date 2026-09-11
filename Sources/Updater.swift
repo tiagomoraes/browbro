@@ -1,3 +1,4 @@
+#if SPARKLE
 import AppKit
 import Observation
 import Sparkle
@@ -61,3 +62,4 @@ final class UpdaterController {
         controller.checkForUpdates(nil)
     }
 }
+#endif

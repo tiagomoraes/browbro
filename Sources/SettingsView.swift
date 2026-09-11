@@ -6,7 +6,9 @@ import UniformTypeIdentifiers
 /// access, the picker catalog (reorder + show/hide), and behavior toggles.
 struct SettingsView: View {
     @State private var catalog = TargetCatalog.shared
+    #if SPARKLE
     @State private var updater = UpdaterController.shared
+    #endif
     @State private var isDefault = DefaultBrowser.isBrowBro
     @State private var chromeAccess = false
     @State private var working = false
@@ -34,7 +36,9 @@ struct SettingsView: View {
                     catalogGroup
                     privateWindowsGroup
                     behaviorGroup
+                    #if SPARKLE
                     updatesGroup
+                    #endif
                     supportGroup
                     versionFooter
                 }
@@ -293,6 +297,7 @@ struct SettingsView: View {
 
     // MARK: Updates
 
+    #if SPARKLE
     private var updatesGroup: some View {
         SettingsGroup(title: "Updates") {
             SettingsRow(
@@ -319,6 +324,7 @@ struct SettingsView: View {
                 })
         }
     }
+    #endif
 
     // MARK: Version footer
 
@@ -336,14 +342,29 @@ struct SettingsView: View {
         let info = Bundle.main.infoDictionary
         let short = info?["CFBundleShortVersionString"] as? String ?? "—"
         let build = info?["CFBundleVersion"] as? String ?? "—"
+        #if APPSTORE
+        return "BrowBro \(short) (\(build)) · Mac App Store"
+        #else
         return "BrowBro \(short) (\(build))"
+        #endif
     }
 
     // MARK: Support
 
     /// The ask, kept quiet and last: three link rows, System-Settings style.
     /// The free option is a first-class row on purpose — no tiers, no minimums.
+    /// The Mac App Store build omits the payment links (guideline 3.1.1).
     private var supportGroup: some View {
+        #if APPSTORE
+        SettingsGroup(title: "Support the project") {
+            SupportLinkRow(
+                symbol: "star.fill",
+                tile: Color(red: 0xEC / 255, green: 0x9A / 255, blue: 0x00 / 255),
+                label: "Star the repo",
+                description: "Free — and it helps just as much.",
+                url: BBLinks.repo)
+        }
+        #else
         SettingsGroup(title: "Support the project", hint: "any amount helps") {
             SupportLinkRow(
                 symbol: "heart.fill",
@@ -366,6 +387,7 @@ struct SettingsView: View {
                 description: "Free — and it helps just as much.",
                 url: BBLinks.repo)
         }
+        #endif
     }
 }
 

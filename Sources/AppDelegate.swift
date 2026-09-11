@@ -33,10 +33,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Re-establish sandbox access to Chrome's profile folder from the
+        // persisted security-scoped bookmark (no-op until the user has granted
+        // it, and no-op outside the sandbox where TCC + the real-home path work).
+        ChromeAccess.restorePersistedAccess()
+
+        #if SPARKLE
         // Start Sparkle so scheduled update checks run in the background (the
         // Settings toggle and menu item drive on-demand checks). Referencing the
-        // singleton is what constructs and starts the updater.
+        // singleton is what constructs and starts the updater. The Mac App Store
+        // build does not ship Sparkle (guideline 2.4.5(vii)).
         _ = UpdaterController.shared
+        #endif
 
         // Guided first run: transparent, reversible default-browser takeover.
         if !Preferences.hasCompletedOnboarding {

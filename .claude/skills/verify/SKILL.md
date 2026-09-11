@@ -15,9 +15,9 @@ whole handle; there is no test target.
 Verification usually means mutating prefs. Snapshot and restore exactly:
 
 ```bash
-defaults export so.aca.browbro /tmp/browbro-prefs-backup.plist
+defaults export cloud.tiagomoraes.browbro /tmp/browbro-prefs-backup.plist
 # … drive …
-defaults delete so.aca.browbro && defaults import so.aca.browbro /tmp/browbro-prefs-backup.plist
+defaults delete cloud.tiagomoraes.browbro && defaults import cloud.tiagomoraes.browbro /tmp/browbro-prefs-backup.plist
 ```
 
 ## Drive a link WITHOUT changing the default browser
@@ -35,14 +35,14 @@ Modifier mode opens `defaultTargetID` directly on a plain link — a programmati
 through `BrowserLauncher.launch`:
 
 ```bash
-defaults write so.aca.browbro requireModifierForPicker -bool true
-defaults write so.aca.browbro defaultTargetID "app:com.google.Chrome"   # any target id
+defaults write cloud.tiagomoraes.browbro requireModifierForPicker -bool true
+defaults write cloud.tiagomoraes.browbro defaultTargetID "app:com.google.Chrome"   # any target id
 open -a BrowBro "https://example.com/launch-test"
 ```
 
 ## Observe
 
-- **Decisions**: `/usr/bin/log show --last 5m --info --predicate 'subsystem == "so.aca.browbro"'`
+- **Decisions**: `/usr/bin/log show --last 5m --info --predicate 'subsystem == "cloud.tiagomoraes.browbro"'`
   — the picker logs presented targets and which target a launch resolved to. Use the full
   path (`log` is a zsh builtin) and remember `--info`.
 - **Pixels**: `screencapture -x /tmp/shot.png` then Read the image. Fails silently to a

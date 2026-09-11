@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import os
 
-private let pickerLog = Logger(subsystem: "so.aca.browbro", category: "picker")
+private let pickerLog = Logger(subsystem: "cloud.tiagomoraes.browbro", category: "picker")
 
 /// Borderless panel that can take key focus, so the picker is fully keyboard-driven.
 /// Key events are forwarded to the view model; unhandled ones fall through.

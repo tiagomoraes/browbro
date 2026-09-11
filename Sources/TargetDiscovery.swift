@@ -23,6 +23,7 @@ enum TargetDiscovery {
 
     /// Chrome profiles as targets, when Chrome is installed and its data is readable.
     /// (Reading Local State is gated by macOS TCC; returns [] until access is granted.)
+    @MainActor
     static func chromeProfiles() -> [LaunchTarget] {
         guard let chrome = BrowserLauncher.chromeAppURL() else { return [] }
         return ChromeProfiles.load().map { p in
@@ -53,6 +54,7 @@ enum TargetDiscovery {
         }
     }
 
+    @MainActor
     static func all() -> [LaunchTarget] {
         let bases = browsers() + chromeProfiles()
         return bases + privateVariants(of: bases)
