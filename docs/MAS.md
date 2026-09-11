@@ -132,6 +132,63 @@ have actually happened here:
 A failed upload does not burn the build number: the same `CURRENT_PROJECT_VERSION`
 can be re-uploaded once the cause is fixed.
 
+## Uploading from CI
+
+[`.github/workflows/app-store.yml`](../.github/workflows/app-store.yml) archives
+`BrowBroMAS` on a `macos-26` runner and uploads it to Connect. It exists because of
+the trap above: a maintainer on a macOS seed has *no* usable toolchain — the only
+Xcode that runs on a prerelease macOS is the one Connect refuses, and an Xcode old
+enough to be accepted won't launch there
+([Apple DTS](https://developer.apple.com/forums/thread/831716)). The runner is a
+production macOS with a production Xcode, which is what Apple asks you to submit
+from anyway.
+
+Uploading is not publishing. The build lands in Connect and still has to be
+attached to a version and submitted by hand, so running this on every release is
+safe. The DMG channel is untouched — it still needs the Developer ID identity and
+the EdDSA update key, which stay on the maintainer's machine.
+
+### Secrets, once
+
+Both certificates go in **one** `.p12`: Apple Distribution signs the app, 3rd Party
+Mac Developer Installer signs the `.pkg` around it. Keychain Access → select both
+identities (⌘-click) → right-click → *Export 2 items…* → `.p12` with a password.
+
+The API key comes from App Store Connect → Users and Access → Integrations → App
+Store Connect API → generate a key with the **App Manager** role. The `.p8`
+downloads exactly once; the Key ID and Issuer ID are on that page.
+
+Then, from a checkout — the values never pass through a browser field:
+
+```sh
+base64 -i ~/Desktop/BrowBro-mas.p12 | gh secret set MAS_CERT_P12_BASE64
+gh secret set MAS_CERT_P12_PASSWORD           # the p12 export password
+gh secret set APPSTORE_CONNECT_KEY_ID         # e.g. ABCD123456
+gh secret set APPSTORE_CONNECT_ISSUER_ID      # the UUID on the same page
+gh secret set APPSTORE_CONNECT_PRIVATE_KEY < ~/Downloads/AuthKey_ABCD123456.p8
+```
+
+The workflow fails with the missing secret's name rather than a signing error
+several minutes in.
+
+### Running it
+
+`workflow_dispatch` only appears once the workflow file is on the **default
+branch** (`develop`) — so this has to be merged before the first manual run, even
+though the run itself can build any ref.
+
+```sh
+gh workflow run app-store.yml -f ref=develop          # archive + upload
+gh workflow run app-store.yml -f dry_run=true         # archive, verify, keep the .pkg
+gh workflow run app-store.yml -f build_number=8       # re-upload after a rejection
+```
+
+A published GitHub Release triggers it with no inputs, building that release's tag.
+
+`MAX_XCODE_MAJOR` in the workflow pins the toolchain to a major Connect accepts.
+Raise it once Apple starts accepting the next one; the pin is there so a runner
+image bump can't silently start producing builds that fail validation.
+
 ## Dual channel
 
 Keep shipping the notarized DMG as today (`packaging/notarize/notarize-release.sh`,

@@ -29,25 +29,7 @@ if [ ! -d "$APP" ]; then
   exit 1
 fi
 
-echo "▶ Checking the App Store binary…"
-if [ -d "$APP/Contents/Frameworks/Sparkle.framework" ]; then
-  echo "✗ Sparkle.framework is in the MAS build — it must not ship (2.4.5(vii))." >&2
-  exit 1
-fi
-if grep -q SUFeedURL "$APP/Contents/Info.plist" 2>/dev/null; then
-  echo "✗ SUFeedURL is in Info.plist — Sparkle keys must not ship on MAS." >&2
-  exit 1
-fi
-if ! codesign -d --entitlements :- "$APP" 2>/dev/null | grep -q "com.apple.security.app-sandbox"; then
-  echo "✗ App Sandbox entitlement missing from $APP" >&2
-  exit 1
-fi
-if ! /usr/libexec/PlistBuddy -c "Print :CFBundleDocumentTypes:0:CFBundleTypeName" \
-  "$APP/Contents/Info.plist" >/dev/null 2>&1; then
-  echo "✗ CFBundleDocumentTypes needs CFBundleTypeName — App Store Connect rejects the" >&2
-  echo "  upload with ITMS-90243 otherwise." >&2
-  exit 1
-fi
+packaging/mas/verify-mas-app.sh "$APP"
 
 echo "✅ $APP"
 echo "   Sandboxed, no Sparkle. Drive a link without touching /Applications:"
