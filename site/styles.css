@@ -616,6 +616,50 @@ html[data-theme="dark"] .btn-star__glyph { color: #f9ab00; }
   color: var(--accent); min-width: 44px; text-align: left;
 }
 
+/* Row-height variant for the install list: matches the 40px badge beside it. */
+.btn-accent--row { height: 40px; padding: 0 18px; gap: 8px; border-radius: 9px; }
+
+/* The bare tail of .btn-brew: just the Copy affordance, for rows where the
+   command itself is the content. */
+.btn-copy {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 40px; padding: 0 14px 0 12px;
+  border-radius: 9px; border: none; cursor: pointer;
+  background: var(--surface-raised); color: var(--text-primary);
+  box-shadow: inset 0 0 0 0.5px var(--border-hairline), var(--shadow-sm);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.btn-copy:hover { background: var(--fill-hover); }
+.btn-copy svg { color: var(--icon-secondary); flex: none; }
+.btn-copy .btn-brew__label { min-width: 0; }
+
+/* --------------------------------------------------------------------------
+   Mac App Store button.
+   Not Apple's badge: the same raised surface as the brew button, so the two
+   secondary ways in read as siblings and the blue one keeps the room. The
+   Apple glyph does the recognising; the label stays in our type.
+-------------------------------------------------------------------------- */
+.btn-store {
+  display: inline-flex; align-items: center; gap: 9px;
+  height: 40px; padding: 0 16px 0 14px;
+  border-radius: 9px;
+  background: var(--surface-raised); color: var(--text-primary);
+  font: var(--weight-semibold) var(--text-md)/1 var(--font-sans);
+  letter-spacing: -0.01em; text-decoration: none; white-space: nowrap;
+  box-shadow: inset 0 0 0 0.5px var(--border-hairline), var(--shadow-sm);
+  transition: background var(--dur-fast) var(--ease-out),
+              transform var(--dur-instant) var(--ease-out);
+}
+.btn-store:hover { background: var(--fill-hover); }
+.btn-store:active { transform: scale(0.98); }
+/* The apple's mass sits low; a 1px lift centres it optically on the label. */
+.btn-store__glyph { flex: none; translate: 0 -1px; }
+.btn-store--md { height: 48px; padding: 0 20px 0 18px; gap: 10px; border-radius: 14px; }
+.btn-store--lg {
+  height: 54px; padding: 0 24px 0 20px; gap: 11px;
+  border-radius: 14px; font-size: 16px;
+}
+
 .btn-dark {
   display: inline-flex; align-items: center; gap: 9px;
   height: 44px; padding: 0 20px;
@@ -1166,6 +1210,49 @@ html[data-theme="dark"] .route__node { color: var(--accent-hover); }
 .settings-row__sub  { font: var(--weight-regular) var(--text-xs)/1.25 var(--font-sans); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* =============================================================================
+   GET BROWBRO — the install list
+   A macOS grouped list, one row per channel, each row's trailing control the
+   real call to action. Narrow and centred on purpose: it sits between two
+   split-layout sections and breaks their rhythm.
+   ============================================================================= */
+#install { max-width: 1120px; margin: 0 auto; padding: 24px 28px 72px; }
+.install {
+  max-width: 760px; margin: 0 auto;
+  background: var(--surface-raised); border-radius: var(--radius-xl);
+  box-shadow: inset 0 0 0 0.5px var(--border-hairline), var(--shadow-md);
+  overflow: hidden;
+}
+.install__list { list-style: none; margin: 0; padding: 0; }
+.install__row {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center;
+  gap: 18px; padding: 22px 26px;
+  box-shadow: inset 0 -0.5px 0 var(--separator);
+}
+.install__row:last-child { box-shadow: none; }
+.install__ico {
+  width: 40px; height: 40px; border-radius: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 0 0 0.5px var(--border-hairline);
+}
+/* Opaque tints, like the support tiles: the icon reads as an app icon, not a glyph. */
+.install__ico--store { background: var(--accent-weak);  color: var(--accent-ink); }
+.install__ico--dmg   { background: var(--success-weak); color: var(--success); }
+.install__ico--brew  { background: #fdf0d9; color: #9a5300; }
+html[data-theme="dark"] .install__ico--brew { background: #43341f; color: #fbb040; }
+.install__text { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.install__name { font: var(--weight-semibold) var(--text-lg)/1.25 var(--font-sans); color: var(--text-primary); letter-spacing: -0.01em; }
+.install__detail { font: var(--weight-regular) var(--text-md)/1.45 var(--font-sans); color: var(--text-secondary); text-wrap: pretty; max-width: 46ch; }
+/* Breaks after `--cask` (a <wbr> in the markup) before it ever breaks mid-word. */
+.install__cmd { font: var(--weight-medium) var(--text-sm)/1.5 var(--font-mono); color: var(--text-primary); overflow-wrap: anywhere; }
+.install__cmd .dollar { color: var(--text-tertiary); }
+.install__ctl { justify-self: end; }
+.install__fine {
+  margin: 18px auto 0; max-width: 58ch; text-align: center;
+  font: var(--weight-regular) var(--text-sm)/1.5 var(--font-sans);
+  color: var(--text-secondary); text-wrap: pretty;
+}
+
+/* =============================================================================
    OPEN SOURCE
    ============================================================================= */
 #github { max-width: 1120px; margin: 0 auto; padding: 24px 28px 72px; }
@@ -1340,6 +1427,7 @@ html[data-theme="dark"] .star-chip svg { color: #f9ab00; }
   padding-bottom: 40px; border-bottom: 0.5px solid var(--separator);
 }
 .footer__brand { max-width: 38ch; }
+.footer__get { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .footer__brand p { margin: 14px 0 0; font: var(--weight-regular) var(--text-md)/1.5 var(--font-sans); color: var(--text-secondary); }
 .footer__bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-top: 24px; }
 .footer__copy { font: var(--weight-regular) var(--text-sm)/1 var(--font-sans); color: var(--text-secondary); }
@@ -1532,8 +1620,14 @@ html[data-theme="dark"] .star-chip svg { color: #f9ab00; }
   .hero { padding-left: 20px; padding-right: 20px; }
   .hero__scene { min-height: 320px; padding: 16px; }
   .hero__actions { flex-direction: column; align-items: stretch; gap: 12px; }
-  .hero__actions .btn-accent--lg { justify-content: center; }
+  .hero__actions .btn-accent--lg,
+  .hero__actions .btn-store { justify-content: center; }
   .btn-brew { width: 100%; }
+
+  /* Install rows: icon + text on top, the control drops under the text. */
+  .install__row { grid-template-columns: auto 1fr; gap: 14px 14px; padding: 20px 18px; }
+  .install__ctl { grid-column: 2; justify-self: start; }
+  .footer__get { width: 100%; }
 
   /* 640px is tuned for the desktop launch window; on a phone it's dead space. */
   .demo-scene { min-height: 440px; }

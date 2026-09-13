@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>BrowBro | Every link, your call.</title>
-<meta name="description" content="BrowBro is an open-source macOS menu-bar app that pops a tiny picker at your cursor the instant you click a link. Choose a browser, or the right Chrome profile, by keyboard or mouse.">
+<meta name="description" content="BrowBro is an open-source macOS menu-bar app that pops a tiny picker at your cursor the instant you click a link. Choose a browser, or the right Chrome profile, by keyboard or mouse. Free as a direct download, via Homebrew, or on the Mac App Store.">
 <link rel="canonical" href="https://browbro.tiagomoraes.cloud/">
 
 <meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
@@ -65,6 +65,11 @@
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
   "url": "https://browbro.tiagomoraes.cloud/",
   "downloadUrl": "https://github.com/tiagomoraes/browbro/releases/latest/download/BrowBro.dmg",
+  "installUrl": "https://apps.apple.com/us/app/browbro/id6806885539",
+  "sameAs": [
+    "https://apps.apple.com/us/app/browbro/id6806885539",
+    "https://github.com/tiagomoraes/browbro"
+  ],
   "license": "https://github.com/tiagomoraes/browbro/blob/develop/LICENSE",
   "author": { "@type": "Person", "name": "Tiago Moraes", "url": "https://tiagomoraes.cloud" }
 }
@@ -90,6 +95,7 @@
       <a href="#how">How it works</a>
       <a href="#demo">Demo</a>
       <a href="#customize">Customize</a>
+      <a href="#install">Install</a>
       <a href="#support">Support</a>
       <a href="#faq">FAQ</a>
     </div>
@@ -132,6 +138,7 @@
   <a href="#how">How it works</a>
   <a href="#demo">Demo</a>
   <a href="#customize">Customize</a>
+  <a href="#install">Install</a>
   <a href="#support">Support</a>
   <a href="#faq">FAQ</a>
   <a href="https://github.com/tiagomoraes/browbro" target="_blank" rel="noopener" class="nav-menu__gh">
@@ -165,10 +172,16 @@
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"></path><path d="M4 20h16"></path></svg>
         Download for macOS
       </a>
-      <button id="brew-copy" class="btn-brew" aria-label="Copy Homebrew install command">
+      <!-- The second way in, on the brew button's quiet surface: the blue one
+           stays the ask, this one is recognisable at a glance and no louder. -->
+      <a href="https://apps.apple.com/us/app/browbro/id6806885539" target="_blank" rel="noopener" class="btn-store btn-store--lg" aria-label="Download on the Mac App Store">
+        <svg class="btn-store__glyph" width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"></path></svg>
+        Mac App Store
+      </a>
+      <button class="btn-brew" data-brew-copy aria-label="Copy Homebrew install command">
         <span class="btn-brew__cmd"><span class="dollar">$ </span>brew install --cask tiagomoraes/browbro/browbro</span>
         <span class="btn-brew__sep"></span>
-        <span class="btn-brew__label" id="brew-label">Copy</span>
+        <span class="btn-brew__label">Copy</span>
       </button>
     </div>
 
@@ -395,6 +408,62 @@
   </div>
 </section>
 
+<!-- ============================ GET BROWBRO ============================ -->
+<!-- One grouped list, macOS-settings style, not three tier cards: the channels
+     are equals, and the trailing control on each row *is* the call to action. -->
+<section id="install" class="bb-pad">
+  <div class="section-head bb-reveal">
+    <h2>Three ways in. <em>One</em> BrowBro.</h2>
+    <p>Free on every channel, and the same app on each. Pick the one that fits how you keep your Mac.</p>
+  </div>
+
+  <div class="install bb-reveal">
+    <ul class="install__list">
+      <li class="install__row">
+        <span class="install__ico install__ico--dmg" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"></path><path d="M4 20h16"></path></svg>
+        </span>
+        <span class="install__text">
+          <span class="install__name">Direct download</span>
+          <span class="install__detail">Signed &amp; notarized DMG. Drag to Applications; it updates itself in place.</span>
+        </span>
+        <a href="https://github.com/tiagomoraes/browbro/releases/latest/download/BrowBro.dmg" target="_blank" rel="noopener" class="btn-accent btn-accent--row install__ctl">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"></path><path d="M4 20h16"></path></svg>
+          Download .dmg
+        </a>
+      </li>
+      <li class="install__row">
+        <span class="install__ico install__ico--brew" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7l5 5-5 5"></path><path d="M12.5 17H19"></path></svg>
+        </span>
+        <span class="install__text">
+          <span class="install__name">Homebrew</span>
+          <span class="install__detail"><code class="install__cmd"><span class="dollar">$ </span>brew install --cask <wbr>tiagomoraes/browbro/browbro</code></span>
+        </span>
+        <button class="btn-copy install__ctl" data-brew-copy aria-label="Copy Homebrew install command">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.2"></rect><path d="M5 15V6.2A2.2 2.2 0 0 1 7.2 4H15"></path></svg>
+          <span class="btn-brew__label">Copy</span>
+        </button>
+      </li>
+      <li class="install__row">
+        <span class="install__ico install__ico--store" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5 5.3 5h13.4L20 9.5"></path><path d="M4 9.5a2.65 2.65 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.65 2.65 0 0 0 5.3 0"></path><path d="M5.6 12.4V19h12.8v-6.6"></path><path d="M10 19v-4.4h4V19"></path></svg>
+        </span>
+        <span class="install__text">
+          <span class="install__name">Mac App Store</span>
+          <span class="install__detail">Sandboxed and reviewed by Apple. Updates arrive with the rest of your apps.</span>
+        </span>
+        <a href="https://apps.apple.com/us/app/browbro/id6806885539" target="_blank" rel="noopener" class="btn-store btn-store--row install__ctl">
+          <svg class="btn-store__glyph" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"></path></svg>
+          View in App Store
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <p class="install__fine bb-reveal">Not sure? Grab the DMG: it's signed &amp; notarized and opens on first launch. Switching channels later works; settings and permissions just start over.</p>
+</section>
+
 <!-- ============================ OPEN SOURCE ============================ -->
 <section id="github" class="bb-pad">
   <div class="oss bb-reveal">
@@ -495,7 +564,7 @@
   <div class="faq-list" id="faq-list">
     <div class="faq-item is-open bb-reveal" style="--i:0">
       <button class="faq-q" aria-expanded="true" aria-controls="faq-a-1" id="faq-q-1"><span class="q">Is BrowBro free?</span><span class="faq-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
-      <div class="faq-a" id="faq-a-1" role="region" aria-labelledby="faq-q-1"><div class="faq-a__in">Yes. BrowBro is open source and free to use: the whole thing lives on GitHub.</div></div>
+      <div class="faq-a" id="faq-a-1" role="region" aria-labelledby="faq-q-1"><div class="faq-a__in">Yes. Free as a direct download, free through Homebrew, free on the Mac App Store, and open source: the whole thing lives on GitHub.</div></div>
     </div>
     <div class="faq-item bb-reveal" style="--i:1">
       <button class="faq-q" aria-expanded="false" aria-controls="faq-a-2" id="faq-q-2"><span class="q">Will it hijack my browser for good?</span><span class="faq-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
@@ -518,10 +587,14 @@
       <div class="faq-a" id="faq-a-6" role="region" aria-labelledby="faq-q-6"><div class="faq-a__in">macOS 14 Sonoma or later.</div></div>
     </div>
     <div class="faq-item bb-reveal" style="--i:6">
+      <button class="faq-q" aria-expanded="false" aria-controls="faq-a-9" id="faq-q-9"><span class="q">Mac App Store or direct download?</span><span class="faq-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
+      <div class="faq-a" id="faq-a-9" role="region" aria-labelledby="faq-q-9"><div class="faq-a__in">Same app, two builds. The <a href="#install">direct download</a> is the one we recommend: signed &amp; notarized, it updates itself and keeps the Sponsor links (the store doesn't allow them). The Mac App Store version is sandboxed and updated by the App Store, if you'd rather keep everything there. For Chrome profiles, the App Store build asks you to pick Chrome's folder once in an open panel; the direct build asks through a system permission prompt instead. Switching later works, but settings and permissions start over.</div></div>
+    </div>
+    <div class="faq-item bb-reveal" style="--i:7">
       <button class="faq-q" aria-expanded="false" aria-controls="faq-a-7" id="faq-q-7"><span class="q">Does BrowBro see my links?</span><span class="faq-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
       <div class="faq-a" id="faq-a-7" role="region" aria-labelledby="faq-q-7"><div class="faq-a__in">Everything happens locally on your Mac. BrowBro just routes the link to the browser you choose. Nothing leaves your machine.</div></div>
     </div>
-    <div class="faq-item bb-reveal" style="--i:7">
+    <div class="faq-item bb-reveal" style="--i:8">
       <button class="faq-q" aria-expanded="false" aria-controls="faq-a-8" id="faq-q-8"><span class="q">How can I support BrowBro?</span><span class="faq-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
       <div class="faq-a" id="faq-a-8" role="region" aria-labelledby="faq-q-8"><div class="faq-a__in">BrowBro is free and always will be. If you'd like to help keep it alive, you can <a href="#support">sponsor it on GitHub or buy me a coffee</a> — any amount, one-time or monthly. Starring the repo and telling a friend helps just as much.</div></div>
     </div>
@@ -539,10 +612,16 @@
         </span>
         <p>The menu-bar browser router for macOS. Every link, your call.</p>
       </div>
-      <a href="https://github.com/tiagomoraes/browbro/releases/latest/download/BrowBro.dmg" target="_blank" rel="noopener" class="btn-accent btn-accent--md">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"></path><path d="M4 20h16"></path></svg>
-        Download for macOS
-      </a>
+      <div class="footer__get">
+        <a href="https://github.com/tiagomoraes/browbro/releases/latest/download/BrowBro.dmg" target="_blank" rel="noopener" class="btn-accent btn-accent--md">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"></path><path d="M4 20h16"></path></svg>
+          Download for macOS
+        </a>
+        <a href="https://apps.apple.com/us/app/browbro/id6806885539" target="_blank" rel="noopener" class="btn-store btn-store--md" aria-label="Download on the Mac App Store">
+          <svg class="btn-store__glyph" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"></path></svg>
+          Mac App Store
+        </a>
+      </div>
     </div>
     <div class="footer__bottom">
       <span class="footer__copy">© <span id="year">2026</span> BrowBro · Open source · Made for macOS</span>
