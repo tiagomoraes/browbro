@@ -5,18 +5,23 @@ BowBro is a macos application that let's the user select the browser they want t
 
 Requires macOS 14 (Sonoma) or later.
 
-**Homebrew:**
+**Download the DMG** from the [latest release](https://github.com/tiagomoraes/browbro/releases/latest)
+and drag BrowBro into Applications.
+
+**Or with Homebrew:**
 
 ```sh
 brew install --cask tiagomoraes/browbro/browbro
 ```
 
-**Or download the DMG** from the [latest release](https://github.com/tiagomoraes/browbro/releases/latest)
-and drag BrowBro into Applications.
-
 BrowBro is signed with an Apple Developer ID and notarized by Apple, so it opens on first
 launch with no warning to click past. macOS will ask once for permission to read other apps'
 data — that's how BrowBro finds your Chrome profiles.
+
+**Also on the Mac App Store:** [Download on the Mac App Store](https://apps.apple.com/us/app/browbro/id6806885539).
+Same app, sandboxed, updated by the store. For Chrome profiles it asks you to pick Chrome's
+folder once in an open panel (Settings → Grant access…). Switching between the two builds
+works, but settings and permissions start over. See [docs/MAS.md](docs/MAS.md) for what differs.
 
 ## Updating
 
