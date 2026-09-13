@@ -244,6 +244,9 @@ jobs:
       - name: Set up Ruby and fastlane
         uses: ruby/setup-ruby@v1
         with:
+          # Pinned here rather than in a .ruby-version file: Ruby is a CI-only
+          # dependency of this repository, and setup-ruby refuses to guess.
+          ruby-version: "3.3"
           bundler-cache: true
 
       - name: Decide the build number

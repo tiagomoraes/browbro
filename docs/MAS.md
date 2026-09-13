@@ -135,18 +135,45 @@ can be re-uploaded once the cause is fixed.
 ## Uploading from CI
 
 [`.github/workflows/app-store.yml`](../.github/workflows/app-store.yml) archives
-`BrowBroMAS` on a `macos-26` runner and uploads it to Connect. It exists because of
-the trap above: a maintainer on a macOS seed has *no* usable toolchain — the only
-Xcode that runs on a prerelease macOS is the one Connect refuses, and an Xcode old
-enough to be accepted won't launch there
-([Apple DTS](https://developer.apple.com/forums/thread/831716)). The runner is a
-production macOS with a production Xcode, which is what Apple asks you to submit
-from anyway.
+`BrowBroMAS` on a `macos-26` runner, uploads it, attaches it to the version,
+pushes the product page, and submits it for review.
 
-Uploading is not publishing. The build lands in Connect and still has to be
-attached to a version and submitted by hand, so running this on every release is
-safe. The DMG channel is untouched — it still needs the Developer ID identity and
-the EdDSA update key, which stay on the maintainer's machine.
+It was written because of the trap above, when a maintainer on a macOS seed had
+*no* usable toolchain: the only Xcode that ran on a prerelease macOS was the one
+Connect refuses, and an Xcode old enough to be accepted wouldn't launch there
+([Apple DTS](https://developer.apple.com/forums/thread/831716)). **That is no
+longer the constraint** — 1.0 (8) and (9) were both uploaded by hand from a
+maintainer's Mac on 2026-09-13, once Xcode 27.0 shipped. CI stays the default
+because the runner is a known-good production macOS, and because it is the only
+place a release trigger can reach.
+
+**This does publish.** A published, non-prerelease GitHub Release now goes all the
+way to App Review without anyone opening App Store Connect. Cut a prerelease, or
+dispatch with `submit=false`, when that is not what you want. The DMG channel is
+untouched — it still needs the Developer ID identity and the EdDSA update key,
+which stay on the maintainer's machine.
+
+### What it decides for you
+
+**The build number comes from Connect, not the repo.** A build number may only be
+used once per version, and Connect counts uploads that were never shipped — 1.0
+reached build 9 through two by-hand uploads that no counter here ever saw. The
+workflow asks for the highest build against `MARKETING_VERSION` and archives one
+past it. `CURRENT_PROJECT_VERSION` in `project.yml` stays as the floor for a local
+archive, and `-f build_number=N` still overrides everything.
+
+**The product page comes from `packaging/mas/listing.md`.** `listing-to-metadata.py`
+projects its fenced blocks into the `fastlane/metadata/` tree that `deliver`
+uploads, so the copy is written and reviewed in one place and never transcribed
+twice. The generated tree is gitignored: edit `listing.md`. A missing section fails
+the release instead of shipping a blank field.
+
+App Review *contact* details — name, phone, email — are deliberately **not** in
+that tree. This repository is public; they live only in Connect, and `deliver`
+leaves them alone.
+
+**Screenshots are opt-in** (`-f screenshots=true`). They change about once a year,
+and replacing them means deleting what is live first.
 
 ### Secrets, once
 
@@ -168,8 +195,16 @@ signing settings require a manually managed profile."* Create one at
 → the Apple Distribution certificate → name and download it.
 
 Its name doesn't have to match anything: the workflow reads the name out of the
-profile it installs and tells `ExportOptions.plist` at export time, so the secret
-can be rotated or renamed without touching the repo.
+profile it installs and writes it into the export options, so the secret can be
+rotated or renamed without touching the repo. It does have to *not* look like one
+of Xcode's — the guard rejects the `Mac Team … Provisioning Profile: <bundle id>`
+shape, and a profile carrying `ProvisionedDevices`, which would be a development
+profile under a distribution name. The one in use is **`BrowBro Mac App Store CI`**,
+created 2026-09-13.
+
+An earlier attempt stored the Xcode-generated profile here and got as far as the
+export before failing, because that profile carries no `IsXcodeManaged` key for the
+guard to find — hence the check on the name.
 
 Then, from a checkout — the values never pass through a browser field:
 
@@ -194,7 +229,7 @@ reads like a missing profile rather than a missing permission.
 
 Rather than hand a CI credential the run of the account, the key stays App
 Manager — enough to upload a build, nothing else — and the profile travels with
-it. The trade is that the profile **expires 2027-09-10** and has to be re-exported
+it. The trade is that the profile **expires 2027-08-30** and has to be re-created
 then. The workflow prints its name and expiry on every run, and fails early if it
 stops matching the bundle id or the name in `ExportOptions.plist`, so this surfaces
 as a dated line in the log rather than a signing error a year from now.
@@ -209,12 +244,19 @@ branch** (`develop`) — so this has to be merged before the first manual run, e
 though the run itself can build any ref.
 
 ```sh
-gh workflow run app-store.yml -f ref=develop          # archive + upload
-gh workflow run app-store.yml -f dry_run=true         # archive, verify, keep the .pkg
-gh workflow run app-store.yml -f build_number=8       # re-upload after a rejection
+gh workflow run app-store.yml -f dry_run=true          # archive, verify, keep the .pkg
+gh workflow run app-store.yml -f ref=develop           # upload + product page, no review
+gh workflow run app-store.yml -f submit=true           # ...and send it to App Review
+gh workflow run app-store.yml -f screenshots=true      # ...also replace the screenshots
+gh workflow run app-store.yml -f build_number=12       # pin the build number by hand
 ```
 
-A published GitHub Release triggers it with no inputs, building that release's tag.
+A published GitHub Release triggers it with no inputs, building that release's tag,
+and **submits for review** unless the release is marked as a prerelease.
+
+`dry_run` stops before anything leaves the runner: it archives, runs
+`verify-mas-app.sh`, exports the `.pkg` and attaches it to the run. It is the way
+to test a signing or project change without burning a build number.
 
 `MAX_XCODE_MAJOR` in the workflow pins the toolchain to a major Connect accepts.
 Raise it once Apple starts accepting the next one; the pin is there so a runner
