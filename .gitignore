@@ -12,3 +12,13 @@ xcuserdata/
 
 # Intermediate act stills for the App Store preview film (the .mp4 is committed)
 /packaging/mas/previews/.frames/
+
+# Generated from packaging/mas/listing.md by listing-to-metadata.py, and staged
+# from packaging/mas/screenshots by the store workflow. Editing these would be
+# editing a build artifact — change listing.md instead.
+/fastlane/metadata/
+/fastlane/screenshots/
+/fastlane/Preview.html
+/fastlane/report.xml
+/vendor/bundle/
+/.bundle/

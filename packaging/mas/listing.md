@@ -7,6 +7,7 @@ Price: **Free**. Availability: all territories.
 Privacy policy: `https://browbro.tiagomoraes.cloud/privacy`
 Support URL: `https://browbro.tiagomoraes.cloud`
 Marketing URL: `https://browbro.tiagomoraes.cloud`
+Copyright: `2026 Tiago Moraes`
 
 The privacy page lives in `site/privacy/` and only goes live when `site/` is on `main`.
 

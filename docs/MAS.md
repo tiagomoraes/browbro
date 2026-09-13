@@ -158,6 +158,19 @@ The API key comes from App Store Connect → Users and Access → Integrations �
 Store Connect API → generate a key with the **App Manager** role. The `.p8`
 downloads exactly once; the Key ID and Issuer ID are on that page.
 
+The signing is manual, so the provisioning profile ships too — and it has to be a
+**manually created** one. The profiles Xcode leaves in
+`~/Library/Developer/Xcode/UserData/Provisioning Profiles/` after an Archive are
+Xcode-managed, and manual signing refuses them outright: *"is Xcode managed, but
+signing settings require a manually managed profile."* Create one at
+[Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/profiles/list)
+→ Profiles → **+** → **Mac App Store Connect** → App ID `cloud.tiagomoraes.browbro`
+→ the Apple Distribution certificate → name and download it.
+
+Its name doesn't have to match anything: the workflow reads the name out of the
+profile it installs and tells `ExportOptions.plist` at export time, so the secret
+can be rotated or renamed without touching the repo.
+
 Then, from a checkout — the values never pass through a browser field:
 
 ```sh
@@ -166,7 +179,25 @@ gh secret set MAS_CERT_P12_PASSWORD           # the p12 export password
 gh secret set APPSTORE_CONNECT_KEY_ID         # e.g. ABCD123456
 gh secret set APPSTORE_CONNECT_ISSUER_ID      # the UUID on the same page
 gh secret set APPSTORE_CONNECT_PRIVATE_KEY < ~/Downloads/AuthKey_ABCD123456.p8
+
+base64 -i ~/Downloads/BrowBro_Mac_App_Store.provisionprofile \
+  | gh secret set MAS_PROVISIONING_PROFILE_BASE64
 ```
+
+### Why the profile is a secret and not cloud signing
+
+`-allowProvisioningUpdates` would fetch the profile on its own and none of this
+would be needed — but distribution cloud signing requires an API key with the
+**Admin** role. A non-Admin key fails at export with `Cloud signing permission
+error` followed by `No profiles for 'cloud.tiagomoraes.browbro' were found`, which
+reads like a missing profile rather than a missing permission.
+
+Rather than hand a CI credential the run of the account, the key stays App
+Manager — enough to upload a build, nothing else — and the profile travels with
+it. The trade is that the profile **expires 2027-09-10** and has to be re-exported
+then. The workflow prints its name and expiry on every run, and fails early if it
+stops matching the bundle id or the name in `ExportOptions.plist`, so this surfaces
+as a dated line in the log rather than a signing error a year from now.
 
 The workflow fails with the missing secret's name rather than a signing error
 several minutes in.

@@ -1,0 +1,4 @@
+# The store channel and the DMG channel share one bundle id on purpose — two
+# products would mean two TCC grants and two profile lists. See docs/MAS.md.
+app_identifier("cloud.tiagomoraes.browbro")
+team_id("QD5A8CZK76")
