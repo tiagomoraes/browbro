@@ -1,18 +1,22 @@
 name: Mac App Store
 
-# Builds the sandboxed BrowBroMAS target and uploads it to App Store Connect.
+# Ships the sandboxed BrowBroMAS target: archive, upload, product page, submit.
 #
-# Uploading is not publishing. The build lands in Connect as a processed build and
-# still has to be attached to a version, have its metadata filled in, and be
-# submitted for review by hand. Nothing in this workflow can put the app in front
-# of users on its own — which is why running it on every published release is safe.
+# READ THIS BEFORE PUBLISHING A RELEASE. This workflow used to stop after the
+# upload, and its safety argument was that uploading is not publishing. That is no
+# longer true: on a published (non-prerelease) GitHub Release it now also attaches
+# the build to the version, pushes the product page, and submits for review. A
+# `gh release publish` therefore puts BrowBro in front of App Review. Cut a
+# prerelease, or dispatch with submit=false, when that is not what you want.
 #
-# Why this runs in CI rather than on a maintainer's Mac: App Store Connect refuses
-# builds made with a beta or Release Candidate Xcode (ITMS-90301), and an Xcode old
-# enough to be accepted refuses to launch on a prerelease macOS ("not compatible
-# with this version of macOS"). A maintainer running a macOS seed therefore cannot
-# upload from their own machine at all. The GitHub runner is a production macOS
-# with a production Xcode — the combination Apple asks you to submit from.
+# Why CI and not a maintainer's Mac: App Store Connect refuses builds made with a
+# beta or Release Candidate Xcode (ITMS-90301). That was once an absolute barrier
+# here — an Xcode old enough to be accepted would not launch on a prerelease macOS
+# — but it is a question of which toolchain is installed, not of which machine:
+# BrowBro 1.0 (8) and (9) were both uploaded by hand from a maintainer's Mac on
+# 2026-09-13 once Xcode 27.0 shipped. CI remains the default because the runner is
+# a known-good production macOS and because it is the only place the release
+# trigger can reach.
 #
 # The DMG / Homebrew / Sparkle channel is untouched: it is still cut by hand with
 # packaging/notarize/notarize-release.sh (docs/NOTARIZING.md), because it needs the
@@ -33,11 +37,21 @@ on:
         required: false
         default: ""
       build_number:
-        description: "Override CFBundleVersion (empty = CURRENT_PROJECT_VERSION from project.yml)"
+        description: "Override CFBundleVersion (empty = ask Connect for the next free one)"
         required: false
         default: ""
       dry_run:
         description: "Archive and verify, but do not upload"
+        type: boolean
+        required: false
+        default: false
+      submit:
+        description: "Submit the version for App Review after uploading"
+        type: boolean
+        required: false
+        default: false
+      screenshots:
+        description: "Also replace the screenshots on the product page"
         type: boolean
         required: false
         default: false
@@ -151,37 +165,138 @@ jobs:
           chmod 600 "$KEY_PATH"
           echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
+      - name: Install the provisioning profile
+        env:
+          PROFILE_BASE64: ${{ secrets.MAS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          : "${PROFILE_BASE64:?MAS_PROVISIONING_PROFILE_BASE64 secret is not set — see docs/MAS.md}"
+
+          # Xcode has looked in both of these across versions. Writing both costs
+          # nothing and removes a failure that depends on the runner image.
+          PROFILE=""
+          for dir in "$HOME/Library/MobileDevice/Provisioning Profiles" \
+                     "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
+            mkdir -p "$dir"
+            echo "$PROFILE_BASE64" | base64 --decode > "$dir/browbro-mas.provisionprofile"
+            PROFILE="$dir/browbro-mas.provisionprofile"
+          done
+
+          security cms -D -i "$PROFILE" > "$RUNNER_TEMP/profile.plist"
+          read_key() { /usr/libexec/PlistBuddy -c "Print $1" "$RUNNER_TEMP/profile.plist" 2>/dev/null; }
+          NAME=$(read_key ":Name")
+          APPID=$(read_key ":Entitlements:com.apple.application-identifier")
+          echo "Profile: $NAME"
+          echo "App ID:  $APPID"
+          echo "Expires: $(read_key ':ExpirationDate')"
+
+          case "$APPID" in
+            *.cloud.tiagomoraes.browbro) ;;
+            *) echo "✗ Profile is for '$APPID', not cloud.tiagomoraes.browbro." >&2; exit 1 ;;
+          esac
+
+          # Xcode writes its own profiles when it archives with automatic signing,
+          # and those are the ones lying around on a developer's Mac — but manual
+          # signing refuses them ("is Xcode managed, but signing settings require a
+          # manually managed profile"). The profile has to be created in the
+          # developer portal instead. Catch it here, where the message can say so,
+          # rather than at export where it can't.
+          #
+          # Two tests, because one is not enough: run 34575742352 shipped an
+          # Xcode-managed profile that carried no IsXcodeManaged key at all, passed
+          # this guard, and failed at export. Xcode names what it generates
+          # "Mac Team <kind> Provisioning Profile: <bundle id>", and a portal
+          # profile is named by whoever created it, so the name is the tell the
+          # missing key isn't.
+          XCODE_MANAGED=""
+          [ "$(read_key ':IsXcodeManaged')" = "true" ] && XCODE_MANAGED="IsXcodeManaged is true"
+          case "$NAME" in
+            "Mac Team "*"Provisioning Profile: "*)
+              XCODE_MANAGED="its name is the one Xcode generates" ;;
+          esac
+          if [ -n "$XCODE_MANAGED" ]; then
+            echo "✗ '$NAME' looks Xcode-managed ($XCODE_MANAGED)." >&2
+            echo "  Manual signing needs a profile created at developer.apple.com →" >&2
+            echo "  Certificates, Identifiers & Profiles → Profiles → + → Mac App" >&2
+            echo "  Store Connect, downloaded, and stored as the secret. See docs/MAS.md." >&2
+            exit 1
+          fi
+
+          # A distribution profile has no device list. One that does is a
+          # development profile, which would sign an archive Connect then rejects.
+          if read_key ":ProvisionedDevices" >/dev/null 2>&1; then
+            echo "✗ '$NAME' carries ProvisionedDevices — that is a development" >&2
+            echo "  profile, not a Mac App Store distribution one." >&2
+            exit 1
+          fi
+
+          # The installed profile names itself; ExportOptions is told at export time.
+          # Nothing to keep in sync, so the secret can be rotated or renamed freely.
+          echo "PROFILE_NAME=$NAME" >> "$GITHUB_ENV"
+          rm -f "$RUNNER_TEMP/profile.plist"
+
       - name: Generate the Xcode project
         run: xcodegen generate
 
-      - name: Archive BrowBroMAS
+      # fastlane owns the Connect side: the build number query here, and the
+      # product page / submission after the upload. bundler-cache keeps the gem
+      # install off the critical path on repeat runs.
+      - name: Set up Ruby and fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          # Pinned here rather than in a .ruby-version file: Ruby is a CI-only
+          # dependency of this repository, and setup-ruby refuses to guess.
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Decide the build number
+        id: build_number
         env:
-          KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
-          BUILD_NUMBER: ${{ inputs.build_number }}
+          ASC_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
+          OVERRIDE: ${{ inputs.build_number }}
         run: |
           set -euo pipefail
-          # A build number may only be used once per version. Overriding it is how
-          # you re-upload after Connect accepted a build and review bounced it.
-          version_override=()
-          if [ -n "$BUILD_NUMBER" ]; then
-            version_override=(CURRENT_PROJECT_VERSION="$BUILD_NUMBER")
-            echo "Overriding CFBundleVersion → $BUILD_NUMBER"
+          # A build number may only be used once per version, and Connect counts
+          # the ones that were uploaded and never shipped too. Asking it is the
+          # only way to be right: 1.0 reached build 9 through two by-hand uploads
+          # that no counter in this repository ever saw.
+          if [ -n "$OVERRIDE" ]; then
+            echo "build_number=$OVERRIDE" >> "$GITHUB_OUTPUT"
+            echo "Using the dispatched override → $OVERRIDE"
+          else
+            bundle exec fastlane mac next_build_number
           fi
 
-          # -allowProvisioningUpdates + the API key let xcodebuild fetch (or create)
-          # the Mac App Store provisioning profile, so no profile has to be checked
-          # in or kept in sync by hand.
+      - name: Archive BrowBroMAS
+        env:
+          BUILD_NUMBER: ${{ steps.build_number.outputs.build_number }}
+        run: |
+          set -euo pipefail
+          : "${BUILD_NUMBER:?No build number was resolved}"
+          echo "Archiving CFBundleVersion $BUILD_NUMBER"
+
+          # Sign the archive manually. The target is set up for automatic signing,
+          # which archives with an Apple Development identity and only switches to
+          # distribution at export. That identity deliberately isn't in CI's p12 —
+          # the runner gets what it needs to ship to the store and nothing else —
+          # and overriding CODE_SIGN_IDENTITY on top of automatic signing is a hard
+          # error ("conflicting provisioning settings"). Overriding the style too
+          # takes the decision away from Xcode instead of arguing with it.
+          #
+          # Name the installed portal profile at both ends. Manual signing does not
+          # go looking, and letting the archive and the export disagree about which
+          # profile applies is its own class of failure.
           xcodebuild -project BrowBro.xcodeproj -scheme BrowBroMAS \
             -configuration Release -destination "generic/platform=macOS" \
             -archivePath "$ARCHIVE" \
             ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
             OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             archive
 
       - name: Verify the store binary
@@ -193,6 +308,43 @@ jobs:
           build $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist")"
           codesign -dv --verbose=2 "$APP" 2>&1 | grep -E "Identifier|Authority|TeamIdentifier"
 
+      # packaging/mas/ExportOptions.plist is the by-hand file: automatic signing,
+      # write a .pkg to disk. CI signs manually against a named portal profile,
+      # which is a different plist, not two keys patched onto that one — patching
+      # is what run 34575742352 did, and it left signingStyle on "automatic" while
+      # the archive had been signed manually. Write the whole thing instead.
+      - name: Compose the export options
+        run: |
+          set -euo pipefail
+          OPTS="$RUNNER_TEMP/ExportOptions-ci.plist"
+          DESTINATION=export
+          [ "${DRY_RUN:-false}" = "true" ] || DESTINATION=upload
+
+          cat > "$OPTS" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>$DESTINATION</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>teamID</key><string>QD5A8CZK76</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>installerSigningCertificate</key><string>3rd Party Mac Developer Installer</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>cloud.tiagomoraes.browbro</key><string>$PROFILE_NAME</string>
+            </dict>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          PLIST
+          plutil -lint "$OPTS"
+          echo "EXPORT_OPTS=$OPTS" >> "$GITHUB_ENV"
+          echo "Exporting with destination=$DESTINATION, profile '$PROFILE_NAME'"
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+
       - name: Export and upload to App Store Connect
         if: ${{ !inputs.dry_run }}
         env:
@@ -200,40 +352,47 @@ jobs:
           ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
         run: |
           set -euo pipefail
-          # The committed ExportOptions.plist writes a .pkg to disk, which is what
-          # you want when exporting by hand. CI wants the upload, so flip that one
-          # key on a copy rather than keeping two near-identical files in sync.
-          OPTS="$RUNNER_TEMP/ExportOptions-upload.plist"
-          cp packaging/mas/ExportOptions.plist "$OPTS"
-          plutil -replace destination -string upload "$OPTS"
-
+          # No -allowProvisioningUpdates: signing is manual, the profile is already
+          # installed, and there is nothing for Xcode to go fetch. The API key stays
+          # because it is also what authenticates the upload itself.
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE" \
             -exportPath "$EXPORT_DIR" \
-            -exportOptionsPlist "$OPTS" \
-            -allowProvisioningUpdates \
+            -exportOptionsPlist "$EXPORT_OPTS" \
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID"
 
-          echo "✅ Uploaded. The build still has to be attached to a version and"
-          echo "   submitted for review in App Store Connect — see packaging/mas/listing.md."
+      # On a published, non-prerelease GitHub Release this submits for review.
+      # On a dispatch it does what the inputs say. See the note at the top of the file.
+      - name: Publish the product page and submit
+        if: ${{ !inputs.dry_run }}
+        env:
+          ASC_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
+          BUILD_NUMBER: ${{ steps.build_number.outputs.build_number }}
+          # A prerelease is how you cut a tag without sending anything to review.
+          SUBMIT: ${{ github.event_name == 'release' && !github.event.release.prerelease || inputs.submit }}
+          SCREENSHOTS: ${{ inputs.screenshots || false }}
+        run: |
+          set -euo pipefail
+          bundle exec fastlane mac wait_for_build build_number:"$BUILD_NUMBER"
+          bundle exec fastlane mac publish \
+            build_number:"$BUILD_NUMBER" \
+            submit:"$SUBMIT" \
+            screenshots:"$SCREENSHOTS"
 
       - name: Export a .pkg without uploading
         if: ${{ inputs.dry_run }}
-        env:
-          KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
         run: |
           set -euo pipefail
+          # Local signing against the installed profile, writing a .pkg to disk.
+          # Nothing leaves the runner, so there is nothing to authenticate.
           xcodebuild -exportArchive \
             -archivePath "$ARCHIVE" \
             -exportPath "$EXPORT_DIR" \
-            -exportOptionsPlist packaging/mas/ExportOptions.plist \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID"
+            -exportOptionsPlist "$EXPORT_OPTS"
 
       - name: Upload the .pkg as a run artifact
         if: ${{ inputs.dry_run }}

@@ -1,0 +1,171 @@
+# The App Store Connect half of a BrowBro release.
+#
+# The build half is .github/workflows/app-store.yml: it archives BrowBroMAS,
+# verifies it, and uploads it with xcodebuild. What is left after that is
+# everything Connect asks a human for — which build belongs to the version, what
+# the product page says, and the act of submitting. These lanes do that part.
+#
+# Nothing here builds or signs anything.
+
+default_platform(:mac)
+
+APP_ID = "cloud.tiagomoraes.browbro".freeze
+
+# Every lane authenticates the same way: the App Store Connect API key that the
+# workflow puts in the environment. No Apple ID, no session cookie, no 2FA —
+# those cannot survive in CI.
+def asc_key
+  app_store_connect_api_key(
+    key_id: ENV.fetch("ASC_KEY_ID"),
+    issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+    key_content: ENV.fetch("ASC_KEY_CONTENT"),
+    in_house: false
+  )
+end
+
+# MARKETING_VERSION from project.yml, which is what Connect calls the version
+# string. Read from the file rather than passed in, so the workflow cannot ship a
+# build against a version the repository does not agree with.
+def marketing_version
+  yml = File.read(File.expand_path("../project.yml", __dir__))
+  mas = yml[/^  BrowBroMAS:.*?(?=^  \w|^schemes:)/m] or
+    UI.user_error!("No BrowBroMAS target in project.yml")
+  mas[/MARKETING_VERSION:\s*"([^"]+)"/, 1] or
+    UI.user_error!("BrowBroMAS has no MARKETING_VERSION in project.yml")
+end
+
+platform :mac do
+  desc "Print the build number to archive: one past the highest Connect has seen"
+  desc "for this MARKETING_VERSION. Writes it to $GITHUB_OUTPUT when running in Actions."
+  lane :next_build_number do
+    version = marketing_version
+
+    # Connect refuses a build number it has already accepted for a version, and
+    # it remembers ones that were uploaded and never shipped — 8 and 9 of 1.0
+    # both count, though only 9 went to review. Asking is the only way to be
+    # right; a counter in the repo drifts the moment anyone uploads by hand.
+    latest = latest_testflight_build_number(
+      api_key: asc_key,
+      app_identifier: APP_ID,
+      platform: "osx",
+      version: version,
+      initial_build_number: 0
+    )
+
+    build = latest.to_i + 1
+    UI.success("#{version}: highest build in Connect is #{latest} → archiving #{build}")
+
+    if ENV["GITHUB_OUTPUT"]
+      File.open(ENV["GITHUB_OUTPUT"], "a") do |f|
+        f.puts("build_number=#{build}")
+        f.puts("marketing_version=#{version}")
+      end
+    end
+    build
+  end
+
+  desc "Block until Connect lists the build, which is when it becomes attachable."
+  lane :wait_for_build do |options|
+    version = marketing_version
+    want = options[:build_number].to_i
+    UI.user_error!("wait_for_build needs build_number:") if want.zero?
+
+    # Connect takes minutes to process a macOS upload — 1.0 (9) took about five on
+    # 2026-09-13 — and a build it has not finished with cannot be attached to a
+    # version. There is no "is it done" flag worth trusting here, so this polls the
+    # thing we actually need to be true: that Connect reports the build as the
+    # highest one for this version, which is exactly when the Build picker offers it.
+    deadline = Time.now + (45 * 60)
+    loop do
+      latest = latest_testflight_build_number(
+        api_key: asc_key,
+        app_identifier: APP_ID,
+        platform: "osx",
+        version: version,
+        initial_build_number: 0
+      ).to_i
+
+      break UI.success("Connect is showing #{version} (#{want}).") if latest >= want
+
+      if Time.now > deadline
+        UI.user_error!("#{version} (#{want}) never showed up in Connect; highest is #{latest}. " \
+                       "Processing can also fail silently — check the build's status in App Store Connect.")
+      end
+      UI.message("Waiting for #{version} (#{want}) to finish processing; highest so far is #{latest}...")
+      sleep(30)
+    end
+  end
+
+  desc "Push the product page, attach the build to the version, and optionally submit."
+  desc "Options: build_number: (required), submit: true|false, screenshots: true|false"
+  lane :publish do |options|
+    version = marketing_version
+    build = options[:build_number].to_s
+    UI.user_error!("publish needs build_number:") if build.empty?
+
+    submit = options[:submit].to_s == "true"
+    screenshots = options[:screenshots].to_s == "true"
+
+    # listing.md is the source of truth; this regenerates the tree deliver reads
+    # and fails loudly if a section went missing. Running it here means a lane
+    # invoked by hand behaves exactly like the workflow.
+    sh("python3", "../packaging/mas/listing-to-metadata.py")
+
+    if screenshots
+      # Staged, not committed: packaging/mas/screenshots is where they are
+      # authored and rendered, and deliver wants one directory per locale.
+      dest = File.expand_path("screenshots/en-US", __dir__)
+      FileUtils.rm_rf(dest)
+      FileUtils.mkdir_p(dest)
+      src = Dir[File.expand_path("../packaging/mas/screenshots/*.png", __dir__)].sort
+      UI.user_error!("No screenshots in packaging/mas/screenshots") if src.empty?
+      FileUtils.cp(src, dest)
+      UI.message("Staged #{src.length} screenshots for upload")
+    end
+
+    deliver(
+      api_key: asc_key,
+      app_identifier: APP_ID,
+      platform: "osx",
+      app_version: version,
+      build_number: build,
+
+      # The binary is already in Connect — the workflow put it there with
+      # xcodebuild. deliver's job is the version record, not the upload.
+      skip_binary_upload: true,
+      skip_metadata: false,
+      skip_app_version_update: false,
+
+      # Screenshots are opt-in. They change once a year at most, re-uploading
+      # them on every release is a slow way to risk the listing, and
+      # overwrite_screenshots deletes what is live before it replaces it.
+      skip_screenshots: !screenshots,
+      overwrite_screenshots: screenshots,
+
+      metadata_path: File.expand_path("metadata", __dir__),
+      screenshots_path: File.expand_path("screenshots", __dir__),
+
+      # No HTML preview and no "are you sure" — there is no one at the terminal.
+      force: true,
+      run_precheck_before_submit: false,
+
+      submit_for_review: submit,
+      automatic_release: true,
+
+      # Answers Connect would otherwise block the submission waiting for.
+      # ITSAppUsesNonExemptEncryption is already false in Resources/Info-MAS.plist;
+      # this is the same answer on the version record.
+      submission_information: {
+        export_compliance_uses_encryption: false,
+        content_rights_contains_third_party_content: false,
+        add_id_info_uses_idfa: false
+      }
+    )
+
+    if submit
+      UI.success("#{version} (#{build}) submitted for review.")
+    else
+      UI.success("#{version} (#{build}) staged in Connect. Submit from App Review when ready.")
+    end
+  end
+end

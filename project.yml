@@ -66,12 +66,34 @@ targets:
     settings:
       base:
         INFOPLIST_FILE: Resources/Info-MAS.plist
+        # The store channel versions independently of Sparkle's 0.1.x: Connect
+        # holds a 1.0 macOS record, and a build number may only be used once.
+        # app-store.yml reads CURRENT_PROJECT_VERSION from here.
+        MARKETING_VERSION: "1.0"
+        # A floor, not the value that ships. app-store.yml asks Connect for the
+        # highest build already uploaded against MARKETING_VERSION and passes
+        # CURRENT_PROJECT_VERSION=<that + 1> on the command line, because a build
+        # number may only be used once per version. This stays as the fallback for
+        # a local archive, and as the answer to "what did the last one ship as".
+        CURRENT_PROJECT_VERSION: "9"
         OTHER_SWIFT_FLAGS: "$(inherited) -D APPSTORE"
         CODE_SIGN_ENTITLEMENTS: packaging/mas/BrowBro.entitlements
         ENABLE_HARDENED_RUNTIME: "YES"
-        # Automatic signing lets Archive → Distribute App pick Apple Distribution
-        # and a Mac App Store Connect profile. Local Run still uses the
-        # Development identity from the team, which is enough to test the sandbox.
+        # Automatic signing picks the identity from what the keychain holds and
+        # what the build is for: Apple Distribution + a Mac Team Store profile for
+        # a Release archive, Apple Development for a local Run.
+        #
+        # Pinning CODE_SIGN_IDENTITY here is what broke CI (runs 34559312376,
+        # 34575742352): the runner's keychain has only Apple Distribution and the
+        # 3rd Party Installer cert, so a Release archive asking for "Apple
+        # Development" fails with "conflicting provisioning settings" — and
+        # answering that by forcing the identity on the command line fails the
+        # other way, because an Xcode-managed profile refuses manual settings.
+        # Scope it to Debug: that is the only configuration that wants it.
+        # Automatic signing is what a local archive wants: it signs with Apple
+        # Development and -exportArchive re-signs with Apple Distribution. CI
+        # overrides the style on the command line instead, because the runner
+        # deliberately has no development identity — see .github/workflows/app-store.yml.
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: "Apple Development"
 schemes:
