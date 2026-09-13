@@ -174,12 +174,13 @@
      BREW COPY
   ========================================================================= */
   (function () {
-    var btn = document.getElementById('brew-copy');
-    var label = document.getElementById('brew-label');
-    if (!btn || !label) return;
-    var t;
-    btn.addEventListener('click', function () {
-      var cmd = 'brew install --cask tiagomoraes/browbro/browbro';
+    // The command appears twice (hero, install list); every [data-brew-copy]
+    // button copies the same string and confirms on its own label.
+    var btns = Array.prototype.slice.call(document.querySelectorAll('[data-brew-copy]'));
+    if (!btns.length) return;
+    var cmd = 'brew install --cask tiagomoraes/browbro/browbro';
+
+    function copy() {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(cmd).catch(function () {});
       } else {
@@ -189,9 +190,19 @@
           document.execCommand('copy'); document.body.removeChild(ta);
         } catch (e) {}
       }
-      label.textContent = 'Copied ✓';
-      clearTimeout(t);
-      t = setTimeout(function () { label.textContent = 'Copy'; }, 1600);
+    }
+
+    btns.forEach(function (btn) {
+      var label = btn.querySelector('.btn-brew__label');
+      var idle = label ? label.textContent : '';
+      var t;
+      btn.addEventListener('click', function () {
+        copy();
+        if (!label) return;
+        label.textContent = 'Copied ✓';
+        clearTimeout(t);
+        t = setTimeout(function () { label.textContent = idle; }, 1600);
+      });
     });
   })();
 
