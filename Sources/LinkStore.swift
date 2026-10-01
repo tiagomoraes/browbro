@@ -41,7 +41,9 @@ final class LinkStore {
         receivedAt = now
         history.insert(ReceivedLink(url: url, at: now), at: 0)
         if history.count > 20 { history.removeLast() }
-        linkLog.info("received URL: \(url.absoluteString, privacy: .public)")
+        // Host stays readable for debugging routing; the full URL (paths and
+        // queries often carry tokens) is hashed, so repeats still correlate.
+        linkLog.info("received URL: \(url.host() ?? "?", privacy: .public) \(url.absoluteString, privacy: .private(mask: .hash))")
     }
 
     func recordOpen(_ url: URL, in targetName: String) {
