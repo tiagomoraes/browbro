@@ -20,6 +20,7 @@ struct SettingsView: View {
     @AppStorage(Preferences.defaultTargetKey) private var defaultTargetID = ""
     @AppStorage(Preferences.privateWindowsEnabledKey) private var privateWindowsEnabled = false
     @State private var launchAtLogin = false
+    @State private var quickKeysRevision = 0
 
     @State private var draggingID: String?
 
@@ -34,6 +35,7 @@ struct SettingsView: View {
                         chromeGroup
                     }
                     catalogGroup
+                    quickKeysGroup
                     privateWindowsGroup
                     behaviorGroup
                     #if SPARKLE
@@ -186,6 +188,40 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    // MARK: Picker quick keys
+
+    private var quickKeysGroup: some View {
+        let _ = quickKeysRevision
+        return SettingsGroup(title: "Picker keys", hint: "choose a key for each target") {
+            ForEach(Array(catalog.all.enumerated()), id: \.element.id) { index, target in
+                if index > 0 { BBDivider().padding(.leading, 12) }
+                QuickKeySettingRow(
+                    target: target,
+                    keyLabel: Preferences.quickKey(for: target.id, at: index) ?? "—",
+                    onChange: { key in assignQuickKey(key, to: target.id) })
+            }
+        }
+    }
+
+    private func assignQuickKey(_ key: String?, to targetID: String) {
+        var assignments = Preferences.targetQuickKeys
+        if let key {
+            // Keep each direct-pick key unique. The displaced target returns to
+            // its position-based default, avoiding ambiguous key presses.
+            let displacedIDs = assignments.compactMap { id, assigned in
+                id != targetID && assigned.caseInsensitiveCompare(key) == .orderedSame ? id : nil
+            }
+            for id in displacedIDs {
+                assignments.removeValue(forKey: id)
+            }
+            assignments[targetID] = key
+        } else {
+            assignments.removeValue(forKey: targetID)
+        }
+        Preferences.targetQuickKeys = assignments
+        quickKeysRevision += 1
     }
 
     // MARK: Private windows
@@ -388,6 +424,76 @@ struct SettingsView: View {
                 url: BBLinks.repo)
         }
         #endif
+    }
+}
+
+private struct QuickKeySettingRow: View {
+    let target: LaunchTarget
+    let keyLabel: String
+    let onChange: (String?) -> Void
+    @State private var isRecording = false
+    @State private var keyView = KeyCaptureView()
+
+    var body: some View {
+        SettingsRow(
+            label: target.name,
+            description: isRecording ? "Press a letter, number or punctuation key." : "Press this key to open directly.",
+            trailing: {
+                Button {
+                    isRecording.toggle()
+                } label: {
+                    Text(isRecording ? "Press a key…" : keyLabel.uppercased())
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .frame(minWidth: 72, minHeight: 26)
+                }
+                .buttonStyle(BBButtonStyle(variant: .secondary, size: .sm))
+                .background(KeyCaptureRepresentable(view: keyView))
+                .onChange(of: isRecording) { _, recording in
+                    keyView.isRecording = recording
+                    keyView.onKey = { key in
+                        onChange(key)
+                        isRecording = false
+                    }
+                    keyView.onCancel = { isRecording = false }
+                    if recording {
+                        NSApp.activate(ignoringOtherApps: true)
+                        DispatchQueue.main.async { keyView.window?.makeFirstResponder(keyView) }
+                    } else {
+                        DispatchQueue.main.async { keyView.window?.makeFirstResponder(nil) }
+                    }
+                }
+            })
+    }
+}
+
+private struct KeyCaptureRepresentable: NSViewRepresentable {
+    let view: KeyCaptureView
+
+    func makeNSView(context: Context) -> KeyCaptureView { view }
+
+    func updateNSView(_ nsView: KeyCaptureView, context: Context) {}
+}
+
+private final class KeyCaptureView: NSView {
+    var onKey: ((String) -> Void)?
+    var onCancel: (() -> Void)?
+    var isRecording = false
+
+    override var acceptsFirstResponder: Bool { true }
+
+    override func keyDown(with event: NSEvent) {
+        guard isRecording else { super.keyDown(with: event); return }
+        guard event.modifierFlags.intersection([.command, .option, .control]).isEmpty else {
+            onCancel?()
+            return
+        }
+        guard let key = event.charactersIgnoringModifiers?.lowercased(), key.count == 1,
+              key.unicodeScalars.allSatisfy({ CharacterSet.alphanumerics.union(.punctuationCharacters).contains($0) })
+        else {
+            onCancel?()
+            return
+        }
+        onKey?(key)
     }
 }
 

@@ -41,7 +41,7 @@ It does not render web pages. It routes the URL to an app you already have: Safa
 WHAT YOU GET
 
 • A picker at the cursor, not a window you have to hunt for
-• Keyboard-first: 1–9, first-letter jump, arrows, Enter, Esc
+• Keyboard-first: customizable direct-pick keys, first-letter jump, arrows, Enter, Esc
 • Chrome profiles as first-class targets (name, color, optional email)
 • Optional private / incognito entries per browser or profile
 • Hold a modifier to pick; let a plain click go straight to your default

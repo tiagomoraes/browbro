@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Custom picker keys.** Assign a single-key shortcut to each browser or Chrome profile
+  from Settings → Picker keys. The picker displays the assigned key and opens that target
+  directly when pressed; unassigned targets keep their position-based 1–9 key where available.
+
 ### Changed
 
 - **Bundle ID is now `cloud.tiagomoraes.browbro`.** The `so.aca.browbro` identity is

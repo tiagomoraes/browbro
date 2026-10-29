@@ -56,6 +56,7 @@ enum Preferences {
     static let defaultTargetKey = "defaultTargetID"
     static let privateWindowsEnabledKey = "privateWindowsEnabled"
     static let privateEnabledTargetsKey = "privateEnabledTargets"
+    static let targetQuickKeysKey = "targetQuickKeys"
 
     /// Pre-highlight whatever you picked last time.
     static var rememberLast: Bool {
@@ -111,6 +112,24 @@ enum Preferences {
     static var privateEnabledTargets: [String] {
         get { UserDefaults.standard.stringArray(forKey: privateEnabledTargetsKey) ?? [] }
         set { UserDefaults.standard.set(newValue, forKey: privateEnabledTargetsKey) }
+    }
+
+    /// Per-target direct-pick keys. Values are normalized single characters;
+    /// missing or duplicate entries fall back to the target's current position.
+    static var targetQuickKeys: [String: String] {
+        get { UserDefaults.standard.dictionary(forKey: targetQuickKeysKey) as? [String: String] ?? [:] }
+        set { UserDefaults.standard.set(newValue, forKey: targetQuickKeysKey) }
+    }
+
+    static func quickKey(for targetID: String, at index: Int) -> String? {
+        let keys = targetQuickKeys
+        if let key = keys[targetID], !key.isEmpty { return key }
+        let candidate = index < 9 ? String(index + 1) : nil
+        guard let candidate else { return nil }
+        if keys.values.contains(where: { $0.caseInsensitiveCompare(candidate) == .orderedSame }) {
+            return nil
+        }
+        return candidate
     }
 }
 

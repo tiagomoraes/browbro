@@ -11,9 +11,9 @@ struct SourceApp {
 /// State + keyboard behavior for the picker. Mutated by the panel's key
 /// handler; observed by the SwiftUI view.
 ///
-/// Keyboard model (DESIGN.md / Picker.jsx, with one-keystroke digits):
+/// Keyboard model (with one-keystroke direct-pick keys):
 ///   ↑ / ↓   move the highlight (clamped at the ends)
-///   1–9     open that target immediately (the badge is its position)
+///   badge   open that target immediately
 ///   A–Z     jump to the first target starting with that letter
 ///   Enter   open the highlighted target
 ///   Esc     cancel — the link does not open
@@ -65,8 +65,8 @@ final class PickerViewModel {
         guard !event.modifierFlags.contains(.command),
               let chars = event.charactersIgnoringModifiers?.lowercased(), chars.count == 1
         else { return false }
-        if let n = Int(chars), (1...9).contains(n) {   // digit = open that target
-            commit(at: n - 1)
+        if let index = targets.indices.first(where: { Preferences.quickKey(for: targets[$0].id, at: $0)?.lowercased() == chars }) {
+            commit(at: index)
             return true
         }
         if chars.first?.isLetter == true {             // first-letter jump

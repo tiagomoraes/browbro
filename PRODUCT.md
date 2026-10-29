@@ -38,8 +38,8 @@ menu bars, and the app's own popover, pixel-faithful to the app's design tokens.
    (picker, settings window, terminal), never abstract art or static screenshots.
 2. **Pixel-faithful to the app.** The site consumes the app's design tokens verbatim; if it
    wouldn't fit macOS, it doesn't ship on the site.
-3. **Keyboard-first everywhere.** Interactive demos honor the app's keys (1–9, arrows,
-   Enter, Esc).
+3. **Keyboard-first everywhere.** Interactive demos honor the app's keys (1–9 by default,
+   arrows, Enter, Esc); users can assign custom direct-pick keys in Settings.
 4. **Trust through transparency.** Open source, reversible default-browser takeover, and
    local-only routing are stated plainly, never buried.
 5. **Asking, never pressuring.** Support is invited with warmth; free actions (starring,

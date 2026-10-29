@@ -34,7 +34,7 @@ struct PickerView: View {
             ForEach(Array(model.targets.enumerated()), id: \.element.id) { index, target in
                 TargetRowView(
                     target: target,
-                    quickKey: index < 9 ? String(index + 1) : nil,
+                    quickKey: Preferences.quickKey(for: target.id, at: index),
                     selected: index == model.selectedIndex,
                     onHoverSelect: { model.select(index) },
                     onTap: { model.commit(at: index) }
