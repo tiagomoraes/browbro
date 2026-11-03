@@ -28,12 +28,13 @@ enum BrowserLauncher {
     /// (verified live for Chrome and Firefox — ADR-0001).
     ///
     /// Direct (DMG/Homebrew) builds spawn the bundle executable. The Mac App
-    /// Store sandbox forbids that, so those builds go through
-    /// `NSWorkspace.openApplication` with `OpenConfiguration.arguments` instead.
+    /// Store sandbox forbids that, and NSWorkspace drops arguments for a sandboxed
+    /// caller, so those builds go through the user-installed `LaunchHelper`.
+    @MainActor
     @discardableResult
     static func open(_ url: URL, withBinaryOfAppAt appURL: URL, flags: [String]) -> Bool {
         #if APPSTORE
-        return openViaWorkspace(url, appAt: appURL, flags: flags)
+        return openViaHelper(url, appAt: appURL, flags: flags)
         #else
         return openViaProcess(url, appAt: appURL, flags: flags)
         #endif
@@ -41,6 +42,7 @@ enum BrowserLauncher {
 
     /// Launch a resolved target (browser, Chrome profile, or a Private Window
     /// variant of either) with a URL.
+    @MainActor
     static func launch(_ target: LaunchTarget, url: URL) {
         var flags: [String] = []
         if case .chromeProfile(let directory) = target.kind {
@@ -57,22 +59,17 @@ enum BrowserLauncher {
     }
 
     #if APPSTORE
-    /// Sandbox-legal launch: Launch Services delivers the flags. `arguments` is
-    /// ignored when opening URLs, so the URL goes on the argument list too, and
-    /// a new instance is spawned so a running browser actually receives them
-    /// (Chromium/Firefox then forward to the existing process and exit).
-    private static func openViaWorkspace(_ url: URL, appAt appURL: URL, flags: [String]) -> Bool {
-        let config = NSWorkspace.OpenConfiguration()
-        config.arguments = flags + [url.absoluteString]
-        config.activates = true
-        config.createsNewApplicationInstance = true
-        launchLog.info("workspace launch \(appURL.lastPathComponent, privacy: .public) flags=\(flags.joined(separator: " "), privacy: .public)")
-        NSWorkspace.shared.openApplication(at: appURL, configuration: config) { _, error in
-            if let error {
-                launchLog.error("workspace launch failed: \(error.localizedDescription, privacy: .public)")
-            }
-        }
-        return true
+    /// Sandbox-legal launch. The flags travel through `LaunchHelper`; if it isn't
+    /// installed yet, this is the moment it matters, so ask now. Declining still
+    /// delivers the link — in the browser's ordinary window — rather than dropping it.
+    @MainActor
+    private static func openViaHelper(_ url: URL, appAt appURL: URL, flags: [String]) -> Bool {
+        let arguments = flags + [url.absoluteString]
+        if LaunchHelper.open(appAt: appURL, arguments: arguments) { return true }
+        if LaunchHelper.install(), LaunchHelper.open(appAt: appURL, arguments: arguments) { return true }
+        launchLog.info("no launch helper; opening \(appURL.lastPathComponent, privacy: .public) without flags")
+        open(url, withAppAt: appURL)
+        return false
     }
     #else
     /// Direct binary invocation. The binary comes from the bundle's

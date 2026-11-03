@@ -75,7 +75,7 @@ targets:
         # CURRENT_PROJECT_VERSION=<that + 1> on the command line, because a build
         # number may only be used once per version. This stays as the fallback for
         # a local archive, and as the answer to "what did the last one ship as".
-        CURRENT_PROJECT_VERSION: "9"
+        CURRENT_PROJECT_VERSION: "10"
         OTHER_SWIFT_FLAGS: "$(inherited) -D APPSTORE"
         CODE_SIGN_ENTITLEMENTS: packaging/mas/BrowBro.entitlements
         ENABLE_HARDENED_RUNTIME: "YES"
