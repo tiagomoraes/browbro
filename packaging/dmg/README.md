@@ -20,6 +20,6 @@ tiffutil -cathidpicheck bg-1x.png bg@2x.png -out background.tiff
 ## Build the DMG
 
 ```sh
-pipx install dmgbuild                 # a bare pip install fails on Homebrew Python (PEP 668)
+pip install dmgbuild
 packaging/dmg/build-dmg.sh            # writes build/BrowBro.dmg
 ```
