@@ -10,9 +10,12 @@ packages:
   # update archive, independent of Apple notarization — see docs/UPDATES.md.
   # The Mac App Store target (BrowBroMAS) does not link Sparkle: guideline
   # 2.4.5(vii) requires MAS apps to update only through the store. See docs/MAS.md.
+  # The floor matters even though `from:` floats to the newest 2.x: nothing is
+  # locked (the .xcodeproj is generated), so it is the only guarantee a build has
+  # 2.9.5–2.9.6's installer hardening. 2.10 needs macOS 12, under our 14.0 target.
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
-    from: "2.5.0"
+    from: "2.10.1"
 settings:
   base:
     PRODUCT_BUNDLE_IDENTIFIER: cloud.tiagomoraes.browbro

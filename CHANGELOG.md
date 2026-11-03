@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   this change (macOS treats it as a different app). Re-download, or `brew
   reinstall --cask browbro`. TCC and default-browser status start over.
 
+### Security
+
+- **Sparkle 2.10.1.** The DMG / Homebrew build's updater moves from 2.9.4 (what 0.1.7
+  shipped) to 2.10.1, picking up Sparkle's installer hardening from 2.9.5 and 2.9.6.
+
 ### Added
 
 - **Mac App Store channel.** A second target, `BrowBroMAS`, builds the sandboxed,
