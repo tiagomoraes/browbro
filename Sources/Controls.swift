@@ -6,9 +6,108 @@ import SwiftUI
 extension View {
     /// Show a cursor while hovering — pointer on clickable things, grab on
     /// draggable ones (design: `cursor: pointer` / `cursor: grab`).
+    ///
+    /// Nests the way CSS cursors do: a clickable switch inside a draggable row
+    /// shows the pointing hand over the switch, and the row's open hand again —
+    /// not the arrow — once the pointer leaves it (`HoverCursorStack`).
     func cursor(_ cursor: NSCursor) -> some View {
-        onHover { inside in
-            if inside { cursor.set() } else { NSCursor.arrow.set() }
+        modifier(HoverCursor(cursor: cursor))
+    }
+}
+
+/// The cursors claimed by currently hovered views. The one on screen belongs to
+/// the *smallest* hovered region: a nested view is never larger than its
+/// container, so the innermost wins whatever order SwiftUI delivers the hover
+/// events in (entering a row and its switch in one mouse move fires both, in no
+/// guaranteed order). Leaving a region hands the cursor back to whatever still
+/// contains the pointer, or to the arrow. Plain `NSCursor.push()`/`pop()` gets
+/// both cases wrong and never pops for a view that disappears while hovered.
+@MainActor
+enum HoverCursorStack {
+    private struct Claim {
+        let owner: UUID
+        let cursor: NSCursor
+        let area: CGFloat
+        let order: Int
+    }
+
+    private static var claims: [Claim] = []
+    private static var counter = 0
+
+    /// The cursor that should be showing now.
+    static var current: NSCursor {
+        claims.min { a, b in
+            a.area != b.area ? a.area < b.area : a.order > b.order   // tie: latest wins
+        }?.cursor ?? .arrow
+    }
+
+    static func enter(_ owner: UUID, cursor: NSCursor, area: CGFloat) {
+        counter += 1
+        claims.removeAll { $0.owner == owner }
+        claims.append(Claim(owner: owner, cursor: cursor, area: area, order: counter))
+        current.set()
+    }
+
+    static func exit(_ owner: UUID) {
+        guard claims.contains(where: { $0.owner == owner }) else { return }
+        claims.removeAll { $0.owner == owner }
+        current.set()
+    }
+}
+
+private struct HoverCursor: ViewModifier {
+    let cursor: NSCursor
+    @State private var owner = UUID()
+    @State private var area: CGFloat = .greatestFiniteMagnitude
+
+    func body(content: Content) -> some View {
+        content
+            .onGeometryChange(for: CGFloat.self) { $0.size.width * $0.size.height } action: { area = $0 }
+            .onHover { inside in
+                if inside {
+                    HoverCursorStack.enter(owner, cursor: cursor, area: area)
+                } else {
+                    HoverCursorStack.exit(owner)
+                }
+            }
+            .onDisappear { HoverCursorStack.exit(owner) }
+    }
+}
+
+// MARK: - Window focus
+
+extension View {
+    /// Run `action` whenever the window hosting this view becomes key. Settings
+    /// and the menu-bar dropdown are reused windows (brought forward, or hidden
+    /// and re-shown), so `onAppear` alone leaves their status stale.
+    func onWindowBecomesKey(perform action: @escaping () -> Void) -> some View {
+        background(WindowKeyObserver(action: action))
+    }
+}
+
+private struct WindowKeyObserver: NSViewRepresentable {
+    let action: () -> Void
+
+    func makeNSView(context: Context) -> ObserverView { ObserverView() }
+
+    func updateNSView(_ view: ObserverView, context: Context) {
+        view.action = action
+    }
+
+    final class ObserverView: NSView {
+        var action: (() -> Void)?
+        private var token: (any NSObjectProtocol)?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let token { NotificationCenter.default.removeObserver(token) }
+            token = nil
+            guard let window else { return }
+            token = NotificationCenter.default.addObserver(
+                forName: NSWindow.didBecomeKeyNotification, object: window, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated { self?.action?() }
+            }
         }
     }
 }
@@ -117,6 +216,9 @@ struct BBButtonStyle: ButtonStyle {
 
 struct BBSwitch: View {
     @Binding var isOn: Bool
+    /// What the switch turns on, for VoiceOver: the control is only shapes, so
+    /// without this every switch reads as an unnamed "button".
+    let label: String
     var size: Size = .md
 
     enum Size { case sm, md }
@@ -145,6 +247,9 @@ struct BBSwitch: View {
             .frame(width: dims.w, height: dims.h)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityValue(isOn ? "On" : "Off")
+        .accessibilityAddTraits(.isToggle)
         .cursor(.pointingHand)
         .animation(BBMotion.easeOut(BBMotion.fast), value: isOn)
     }

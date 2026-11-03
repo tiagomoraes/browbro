@@ -13,13 +13,31 @@ is the rulebook.
 | Sparkle | linked (`-D SPARKLE`) | **not linked** (`-D APPSTORE`) |
 | Sandbox | off | on (`packaging/mas/BrowBro.entitlements`) |
 | Chrome folder | TCC + real-home path | NSOpenPanel + security-scoped bookmark |
-| Flagged launches (profile / private window) | `Process()` of the browser binary (ADR-0001) | `NSWorkspace.openApplication` with `OpenConfiguration.arguments` |
+| Flagged launches (profile / private window) | `NSWorkspace.openApplication` with `OpenConfiguration.arguments` (ADR-0001) | the same call — but the sandbox drops the arguments; see [Known issue](#known-issue-flagged-launches-in-the-sandbox) |
 | Updates UI | Settings + menu item | omitted — the store updates the app |
 | Ko-fi / Sponsors | Settings | omitted (guideline 3.1.1) |
 | Info.plist | `Resources/Info.plist` | `Resources/Info-MAS.plist` (no `SUFeedURL`) |
 
 Same bundle id, same `PRODUCT_NAME`. Do **not** install a MAS build over
 `/Applications/BrowBro.app` — that replaces the daily Sparkle app and resets TCC.
+
+## Known issue: flagged launches in the sandbox
+
+**Chrome-profile and private-window targets do not work in `BrowBroMAS`.** Launch
+Services ignores `NSWorkspace.OpenConfiguration.arguments` when the caller is sandboxed
+([Apple's documentation](https://developer.apple.com/documentation/appkit/nsworkspace/openconfiguration/arguments)),
+so the flags *and* the URL never arrive: the browser is started or brought forward, and
+the link is lost. Verified on 2026-11-03 with a sandboxed build after a real Chrome-folder
+grant: the logged launch was `flags=--profile-directory=Profile 2`, the spawned Chrome ran
+with an empty argv and exited within ~270 ms, and the URL reached no profile's History in
+two attempts. The same code unsandboxed (the DMG build) delivered
+`--profile-directory=Profile 2 <url>` and the URL landed in Profile 2.
+
+Plain browser targets are unaffected (`NSWorkspace.open(_:withApplicationAt:)` carries
+the URL). There is no sandbox-legal way to pass a launch flag to another app, so the fix is
+a product decision, not a code change: hide profile / private targets in the store build
+(and drop them from `packaging/mas/listing.md` and screenshots 02 and 04), or ask for an
+Apple Events temporary exception (can open incognito, cannot choose a profile).
 
 ## Local sandbox test
 
@@ -62,7 +80,7 @@ ID for notarization. The store needs extra pieces the DMG never used:
 
 ## Product page (required to submit)
 
-- **Privacy policy URL** — `https://browbro.tiagomoraes.cloud/privacy` (`site/privacy/`).
+- **Privacy policy URL** — `https://browbro.tiagomoraes.cloud/privacy/` (`site/privacy/`).
 - **Support URL** — `https://browbro.tiagomoraes.cloud` or the GitHub repo.
 - **App Privacy** questionnaire — BrowBro does not collect data; Chrome profile
   names never leave the device. Answer accordingly.
@@ -135,8 +153,9 @@ can be re-uploaded once the cause is fixed.
 ## Uploading from CI
 
 [`.github/workflows/app-store.yml`](../.github/workflows/app-store.yml) archives
-`BrowBroMAS` on a `macos-26` runner, uploads it, attaches it to the version,
-pushes the product page, and submits it for review.
+`BrowBroMAS` on a `macos-26` runner, uploads it, waits for Connect to process it,
+and pushes the product page. When it submits, it also attaches the build to the
+version and sends it to App Review.
 
 It was written because of the trap above, when a maintainer on a macOS seed had
 *no* usable toolchain: the only Xcode that ran on a prerelease macOS was the one
@@ -145,22 +164,41 @@ Connect refuses, and an Xcode old enough to be accepted wouldn't launch there
 longer the constraint** — 1.0 (8) and (9) were both uploaded by hand from a
 maintainer's Mac on 2026-09-13, once Xcode 27.0 shipped. CI stays the default
 because the runner is a known-good production macOS, and because it is the only
-place a release trigger can reach.
+place a tag push can reach.
 
-**This does publish.** A published, non-prerelease GitHub Release now goes all the
-way to App Review without anyone opening App Store Connect. Cut a prerelease, or
-dispatch with `submit=false`, when that is not what you want. The DMG channel is
-untouched — it still needs the Developer ID identity and the EdDSA update key,
-which stay on the maintainer's machine.
+**A `mas-v` tag publishes.** Pushing `mas-v<version>` goes all the way to App
+Review without anyone opening App Store Connect:
+
+```sh
+git tag mas-v1.1 && git push origin mas-v1.1          # upload, product page, submit for review
+git tag mas-v1.1-rc1 && git push origin mas-v1.1-rc1  # upload + product page, no submit
+```
+
+Any `-<suffix>` stops short of review. The tag's version must equal `BrowBroMAS`'s
+`MARKETING_VERSION` in `project.yml`, or the job fails before it touches a single
+secret — so a tag can't ship a binary that calls itself something else.
+
+GitHub Releases don't trigger this workflow: publishing a `vX.Y.Z` release ships
+the DMG channel and nothing else. A tag push creates no GitHub Release either, so
+the website's "latest release" DMG link is unaffected. The DMG channel still needs
+the Developer ID identity and the EdDSA update key, which stay on the maintainer's
+machine.
 
 ### What it decides for you
 
 **The build number comes from Connect, not the repo.** A build number may only be
 used once per version, and Connect counts uploads that were never shipped — 1.0
 reached build 9 through two by-hand uploads that no counter here ever saw. The
-workflow asks for the highest build against `MARKETING_VERSION` and archives one
-past it. `CURRENT_PROJECT_VERSION` in `project.yml` stays as the floor for a local
-archive, and `-f build_number=N` still overrides everything.
+workflow takes the highest of three numbers — the latest build Connect has for this
+`MARKETING_VERSION`, the latest build across all versions, and `BrowBroMAS`'s
+`CURRENT_PROJECT_VERSION` in `project.yml` as a floor — and archives one past it.
+`-f build_number=N` still overrides everything.
+
+**It waits for processing, and attaches only to submit.** After the upload,
+`wait_for_build` blocks until Connect reports the build processed (`VALID`), and
+fails the run if Connect marks it invalid. `deliver` attaches the build to the
+version only when it is submitting; an upload-only run leaves the build in Connect
+(and TestFlight) without touching the version.
 
 **The product page comes from `packaging/mas/listing.md`.** `listing-to-metadata.py`
 projects its fenced blocks into the `fastlane/metadata/` tree that `deliver`
@@ -231,8 +269,11 @@ Rather than hand a CI credential the run of the account, the key stays App
 Manager — enough to upload a build, nothing else — and the profile travels with
 it. The trade is that the profile **expires 2027-08-30** and has to be re-created
 then. The workflow prints its name and expiry on every run, and fails early if it
-stops matching the bundle id or the name in `ExportOptions.plist`, so this surfaces
-as a dated line in the log rather than a signing error a year from now.
+stops matching the bundle id or starts looking Xcode-managed, so this surfaces as a
+dated line in the log rather than a signing error a year from now. There is no
+profile name to keep in sync: `packaging/mas/ExportOptions.plist` (the by-hand file)
+doesn't carry one, and CI reads the name out of the installed profile in its
+"Install the provisioning profile" step and writes its own export options.
 
 The workflow fails with the missing secret's name rather than a signing error
 several minutes in.
@@ -251,8 +292,10 @@ gh workflow run app-store.yml -f screenshots=true      # ...also replace the scr
 gh workflow run app-store.yml -f build_number=12       # pin the build number by hand
 ```
 
-A published GitHub Release triggers it with no inputs, building that release's tag,
-and **submits for review** unless the release is marked as a prerelease.
+Pushing a `mas-v<version>` tag triggers it with no inputs, building that tag and
+**submitting for review**; `mas-v<version>-<suffix>` uploads without submitting (see
+above). A tag push runs the workflow file as it exists at the tagged commit, so tag
+a commit that already has the tag trigger.
 
 `dry_run` stops before anything leaves the runner: it archives, runs
 `verify-mas-app.sh`, exports the `.pkg` and attaches it to the run. It is the way
@@ -284,5 +327,6 @@ never seen one. Common bounce-backs:
 
 - Sparkle / `SUFeedURL` still in the bundle → this target is built so that can't happen.
 - Chrome profiles empty because they skipped Grant access… → spell out the panel in the notes.
-- Profile / incognito opens the wrong window → that's the `NSWorkspace` flags path; verify it locally first.
+- Profile / incognito opens the wrong window, or no page at all → that's the
+  [known issue](#known-issue-flagged-launches-in-the-sandbox): the sandbox drops the flags.
 - Ko-fi / Sponsors in the binary → omitted from `BrowBroMAS`.

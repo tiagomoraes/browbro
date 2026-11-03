@@ -89,10 +89,7 @@ struct UrlHeaderView: View {
     }
 
     private var urlLine: Text {
-        let host = url.host ?? url.absoluteString
-        var tail = url.path == "/" ? "" : url.path
-        if let query = url.query { tail += "?" + query }
-        if let fragment = url.fragment { tail += "#" + fragment }
+        let (host, tail) = Self.headerParts(for: url)
         return Text(host)
             .font(BBFont.url)
             .fontWeight(.semibold)
@@ -100,6 +97,20 @@ struct UrlHeaderView: View {
         + Text(tail)
             .font(BBFont.url)
             .foregroundStyle(BB.textTertiary)
+    }
+
+    /// The header's two runs: the authority, emphasized — host plus any port
+    /// (localhost:3000 and localhost:5173 are different apps), IPv6 literals
+    /// back in brackets — and the muted rest. User info is never shown. A URL
+    /// with no host (file:) is shown whole, once.
+    nonisolated static func headerParts(for url: URL) -> (host: String, tail: String) {
+        guard let host = url.host, !host.isEmpty else { return (url.absoluteString, "") }
+        var authority = host.contains(":") ? "[\(host)]" : host
+        if let port = url.port { authority += ":\(port)" }
+        var tail = url.path == "/" ? "" : url.path
+        if let query = url.query { tail += "?" + query }
+        if let fragment = url.fragment { tail += "#" + fragment }
+        return (authority, tail)
     }
 }
 
@@ -144,8 +155,22 @@ struct TargetRowView: View {
             if inside { onHoverSelect() }
             (inside ? NSCursor.pointingHand : NSCursor.arrow).set()
         }
+        // One VoiceOver element per row that acts like the button it looks
+        // like; a tap gesture alone is invisible to assistive tech.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityName)
+        .accessibilityHint(quickKey.map { "Opens the link. Shortcut: \($0)" } ?? "Opens the link.")
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAction { onTap() }
         // Selection follows the keyboard/pointer in ~70ms.
         .animation(BBMotion.easeOut(BBMotion.instant), value: selected)
+    }
+
+    /// "Work Incognito, private window, me@example.com"
+    private var accessibilityName: String {
+        [target.name, target.isPrivate ? "private window" : nil, target.subtitle]
+            .compactMap { $0 }
+            .joined(separator: ", ")
     }
 
     @ViewBuilder private var leading: some View {

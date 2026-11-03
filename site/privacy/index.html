@@ -6,7 +6,7 @@
 
 <title>Privacy Policy | BrowBro</title>
 <meta name="description" content="BrowBro routes clicked links on your Mac. It does not collect accounts, analytics, or browsing history.">
-<link rel="canonical" href="https://browbro.tiagomoraes.cloud/privacy">
+<link rel="canonical" href="https://browbro.tiagomoraes.cloud/privacy/">
 
 <meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121214" media="(prefers-color-scheme: dark)">
@@ -16,18 +16,15 @@
 <meta property="og:site_name" content="BrowBro">
 <meta property="og:title" content="Privacy Policy | BrowBro">
 <meta property="og:description" content="BrowBro routes clicked links on your Mac. It does not collect accounts, analytics, or browsing history.">
-<meta property="og:url" content="https://browbro.tiagomoraes.cloud/privacy">
+<meta property="og:url" content="https://browbro.tiagomoraes.cloud/privacy/">
 <meta property="og:image" content="https://browbro.tiagomoraes.cloud/assets/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Privacy Policy | BrowBro">
-<meta name="twitter:description" content="BrowBro routes clicked links on your Mac. Nothing leaves the device.">
+<meta name="twitter:description" content="BrowBro routes clicked links on your Mac. Your links never leave it.">
 <meta name="twitter:image" content="https://browbro.tiagomoraes.cloud/assets/og-image.png">
 
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="mask-icon" href="../assets/favicon.svg" color="#2c6bed">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
 <link rel="stylesheet" href="../styles.css">
 
 <script>
@@ -69,9 +66,9 @@
 
 <main class="legal">
   <h1>Privacy Policy</h1>
-  <p class="legal__updated">Last updated 30 August 2026</p>
+  <p class="legal__updated">Last updated 2 November 2026</p>
 
-  <p>BrowBro is a macOS menu-bar app that intercepts clicked web links on your Mac and lets you pick which browser or Chrome profile opens them. It is made by Tiago Moraes.</p>
+  <p>BrowBro is a macOS menu-bar app that intercepts clicked web links on your Mac and lets you pick which browser or Chrome profile opens them. It is made by Tiago Moraes. This policy covers the app and this website.</p>
 
   <h2>What BrowBro does on your Mac</h2>
   <p>When you make BrowBro your default browser, macOS delivers the clicked URL to BrowBro. BrowBro shows a picker and then opens that URL in the browser you choose. Routing happens entirely on your computer. BrowBro does not load the page, does not run a web view, and does not send the URL to us.</p>
@@ -88,8 +85,18 @@
   </ul>
 
   <h2>Network</h2>
-  <p>BrowBro itself does not need the network to route a link. Opening the GitHub repo or this site from Settings uses your default browser (which, while BrowBro is the default handler, is BrowBro — the picker will ask where to open it).</p>
-  <p>The direct download (DMG / Homebrew) build also checks a signed update feed at <code>browbro.tiagomoraes.cloud/appcast.xml</code> via Sparkle. That request is an update check; it does not include your links or profile list. The Mac App Store build does not include Sparkle and is updated by Apple.</p>
+  <p>BrowBro itself does not need the network to route a link, and the links you click never leave your Mac. Opening the GitHub repo or this site from Settings uses your default browser (which, while BrowBro is the default handler, is BrowBro — the picker will ask where to open it).</p>
+  <p>The direct download (DMG / Homebrew) build makes one kind of request of its own: it checks for updates via Sparkle by fetching <code>browbro.tiagomoraes.cloud/appcast.xml</code>. Automatic checks are on by default (about once a day) and can be turned off in <strong>Settings → Updates</strong>. <strong>Check for Updates…</strong> checks on demand. The request carries what any download does — your IP address and the app’s version in its user agent — and never your links, browser list, or Chrome profiles. Sparkle’s optional system profile is off. An update itself downloads from GitHub Releases and is verified against an EdDSA signature before it installs.</p>
+  <p>The Mac App Store build does not include Sparkle, makes no network requests, and is updated by Apple.</p>
+
+  <h2>This website</h2>
+  <p>This site is a static page hosted on GitHub Pages. GitHub serves it and, like any web host, logs visitors’ IP addresses, under <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub’s privacy statement</a>. The update feed above is served the same way.</p>
+  <ul>
+    <li><strong>No cookies, analytics, or trackers</strong> — the site sets no cookies and loads no analytics, advertising, or tracking scripts.</li>
+    <li><strong>Fonts</strong> — Plus Jakarta Sans and JetBrains Mono are served from this site, not from a font service.</li>
+    <li><strong>GitHub star count</strong> — the home page asks GitHub’s public API (<code>api.github.com</code>) for the repository’s star count. Your browser sends that request straight to GitHub, so GitHub sees your IP address, under the same privacy statement. The answer is cached for an hour, so reloading doesn’t ask again.</li>
+    <li><strong>Local storage</strong> — two keys in your browser’s <code>localStorage</code>, read only by this site and never sent anywhere: <code>bb-theme</code> (<code>light</code> or <code>dark</code>, saved only once you use the theme toggle) and <code>bb-gh-stars</code> (the last star count and when it was fetched). Clearing this site’s data in your browser removes them.</li>
+  </ul>
 
   <h2>Children</h2>
   <p>BrowBro is a utility. It does not target children and does not collect personal information from anyone.</p>
@@ -108,7 +115,7 @@
       <div class="footer__links">
         <a href="/">Home</a>
         <a href="https://github.com/tiagomoraes/browbro" target="_blank" rel="noopener">GitHub</a>
-        <a href="/privacy">Privacy</a>
+        <a href="/privacy/">Privacy</a>
       </div>
     </div>
   </div>

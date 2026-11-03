@@ -66,7 +66,7 @@
       <description><![CDATA[
 <h4>Added</h4>
 <ul>
-<li><strong>In-app updates.</strong> BrowBro now updates itself (via <a href="https://sparkle-project.org">Sparkle</a>), so DMG and Homebrew installs no longer need a manual re-download. <strong>Settings → Updates</strong> has a <strong>Check Now</strong> button and an <strong>Automatically check for updates</strong> toggle, and the menu-bar dropdown gains a <strong>Check for Updates…</strong> item. Updates are verified with an EdDSA signature and installed in place — and, unlike a manual download, they skip the first-run "Open Anyway" prompt. See <a href="docs/UPDATES.md">docs/UPDATES.md</a>.</li>
+<li><strong>In-app updates.</strong> BrowBro now updates itself (via <a href="https://sparkle-project.org">Sparkle</a>), so DMG and Homebrew installs no longer need a manual re-download. <strong>Settings → Updates</strong> has a <strong>Check Now</strong> button and an <strong>Automatically check for updates</strong> toggle, and the menu-bar dropdown gains a <strong>Check for Updates…</strong> item. Updates are verified with an EdDSA signature and installed in place — and, unlike a manual download, they skip the first-run "Open Anyway" prompt. See <a href="https://github.com/tiagomoraes/browbro/blob/main/docs/UPDATES.md">docs/UPDATES.md</a>.</li>
 <li>A <strong>version indicator</strong> in Settings: the current version and build show at the bottom of the window ("BrowBro 0.1.4 (4)").</li>
 </ul>
       ]]></description>

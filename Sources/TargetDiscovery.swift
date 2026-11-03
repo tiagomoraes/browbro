@@ -4,13 +4,15 @@ import AppKit
 enum TargetDiscovery {
     private static let probe = URL(string: "https://example.com")!
 
-    /// Every app registered to handle http(s), except BrowBro itself.
+    /// Every app registered to handle http(s), except BrowBro itself — this
+    /// build or a pre-rename copy still lying around (`so.aca.browbro`), which
+    /// would only bounce the link into another BrowBro.
     static func browsers() -> [LaunchTarget] {
-        let me = Bundle.main.bundleIdentifier
         var seen = Set<String>()
         var result: [LaunchTarget] = []
         for appURL in NSWorkspace.shared.urlsForApplications(toOpen: probe) {
-            guard let bundleID = Bundle(url: appURL)?.bundleIdentifier, bundleID != me else { continue }
+            guard let bundleID = Bundle(url: appURL)?.bundleIdentifier,
+                  !DefaultBrowser.isBrowBro(bundleID: bundleID) else { continue }
             guard seen.insert(bundleID).inserted else { continue }
             let name = FileManager.default.displayName(atPath: appURL.path)
                 .replacingOccurrences(of: ".app", with: "")

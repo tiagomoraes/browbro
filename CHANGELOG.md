@@ -21,6 +21,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   persists via a security-scoped bookmark; profile / private-window launches go
   through `NSWorkspace` instead of `Process()`. Direct DMG + Homebrew + Sparkle
   builds are unchanged. See [docs/MAS.md](docs/MAS.md).
+- **Gentle update reminders.** When a background check finds an update, the menu-bar
+  icon gets a dot and the menu shows **Update available** instead of an update window
+  opening behind your other apps. Right after launch, the update window still appears
+  as before.
+
+### Removed
+
+- **⌃ (Control) as a picker trigger key.** ⌃-click is a right-click on macOS, so a
+  ⌃-click on a link opened the app's context menu and never reached BrowBro. A saved ⌃
+  falls back to ⌥.
+
+### Fixed
+
+- **Links no longer vanish when the picker has nothing to show.** If every visible
+  target disappears (say the only one was a private window and Private Windows was
+  switched off), the picker offers every browser instead of dropping the link.
+- **Only http, https and file links are routed.** Anything else is dropped before it
+  reaches a browser, including strings a browser would read as a command-line switch.
+- **Profile and private-window launches go through Launch Services** in the DMG /
+  Homebrew build too, instead of starting the browser as BrowBro's child process. A
+  browser started this way now asks for camera and microphone under its own name.
+- **Picker number keys** work while ⌘ or ⇧ is still held, on the numeric keypad, and on
+  layouts such as AZERTY.
+- **Clicking a recent link in the menu always shows the picker**, including in hold-a-key
+  mode.
+- **Hidden and reordered targets are remembered** while they're temporarily missing
+  (Private Windows off, Chrome folder unreadable), and a plain-click browser that's
+  missing for the moment isn't replaced.
+- **"Restore previous browser"** brings back the browser that was default most recently,
+  not the first one BrowBro ever saw.
+- **The plain-click browser starts as the browser you used before BrowBro**, not the
+  alphabetically first one, and stays valid when private windows are switched off.
+- **Settings and the menu refresh their status when reopened**, and "x seconds ago"
+  times keep counting.
+- **Settings drag-and-drop:** a cancelled drag no longer leaves a row dimmed as if hidden,
+  and the open-hand cursor comes back after leaving a row's switch.
+- **The picker header shows the port** (`localhost:3000` vs `localhost:5173`).
+- **Onboarding says "Previously:"** once BrowBro is the default.
+- **Accessibility:** switches, the plain-click browser menu, the trigger-key choices and
+  picker rows are labelled for VoiceOver, and catalog rows have Move up / Move down
+  actions.
+- **Mac App Store build:** Chrome folder access is restored before the first link of a
+  cold launch, the saved grant is read-only as the sandbox requires, and choosing a
+  folder other than Chrome's (e.g. Chrome Beta) is refused with an explanation. The menu
+  links to "BrowBro on GitHub" without a donation ask.
+- **Website:** fonts are self-hosted, and the privacy policy now covers the site itself
+  and says exactly what the update check sends.
 
 ## [0.1.7] - 2026-08-27
 
@@ -127,7 +174,9 @@ yet notarized, so the first launch needs a manual "Open Anyway" (see the release
 - Marketing website (static, in `site/`) published to GitHub Pages at browbro.tiagomoraes.cloud.
 - Project scaffolding: Gitflow branching model, contribution guidelines, issue/PR templates.
 
-[Unreleased]: https://github.com/tiagomoraes/browbro/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/tiagomoraes/browbro/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/tiagomoraes/browbro/compare/v0.1.6...v0.1.7
+[0.1.6]: https://github.com/tiagomoraes/browbro/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/tiagomoraes/browbro/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/tiagomoraes/browbro/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/tiagomoraes/browbro/compare/v0.1.2...v0.1.3

@@ -95,15 +95,27 @@ enum BBLinks {
     static let repo = URL(string: "https://github.com/tiagomoraes/browbro")!
     static let sponsors = URL(string: "https://github.com/sponsors/tiagomoraes")!
     static let kofi = URL(string: "https://ko-fi.com/tiagomoraes")!
-    static let privacy = URL(string: "https://browbro.tiagomoraes.cloud/privacy")!
+    /// Trailing slash on purpose: the slashless form answers with a 301.
+    static let privacy = URL(string: "https://browbro.tiagomoraes.cloud/privacy/")!
     /// Direct builds send "Support" to the donation block. The Mac App Store
     /// build must not steer people to a payment page (guideline 3.1.1), so it
-    /// opens the repo instead.
+    /// opens the repo instead — under a neutral "BrowBro on GitHub" label, since
+    /// the repo page itself carries a Sponsor button (`supportMenuTitle`).
     static let supportPage: URL = {
         #if APPSTORE
         repo
         #else
         URL(string: "https://browbro.tiagomoraes.cloud/#support")!
+        #endif
+    }()
+
+    /// The dropdown row that opens `supportPage`, and its trailing glyph. No
+    /// heart in the store build: it's a project link there, not a donation ask.
+    static let supportMenuTitle: (title: String, glyph: String) = {
+        #if APPSTORE
+        ("BrowBro on GitHub", "\u{2197}")   // ↗
+        #else
+        ("Support BrowBro", "\u{2665}")     // ♥
         #endif
     }()
 }
@@ -113,7 +125,12 @@ enum BBLinks {
 enum BBBrand {
     /// The menu-bar glyph as a monochrome template image, so macOS tints it to
     /// match the menu bar and inverts it while the menu is open.
-    static func menuBarIcon(size: CGFloat = 18) -> NSImage {
+    ///
+    /// `badged` adds a notification dot at the top-right (an update is waiting,
+    /// see `UpdateReminder`). A template image can't carry color, so the dot
+    /// reads by shape instead: it sits in a knocked-out ring that also nicks the
+    /// end of the brow, the way system status items badge themselves.
+    static func menuBarIcon(size: CGFloat = 18, badged: Bool = false) -> NSImage {
         let image = NSImage(size: NSSize(width: size, height: size), flipped: true) { rect in
             let s = rect.width / 24
 
@@ -137,6 +154,18 @@ enum BBBrand {
             for x in [7.3, 16.7] {
                 NSBezierPath(ovalIn: NSRect(x: (x - 1.75) * s, y: (16.8 - 1.75) * s,
                                             width: 3.5 * s, height: 3.5 * s)).fill()
+            }
+
+            if badged {
+                let center = NSPoint(x: 20.2 * s, y: 4.6 * s)
+                func disc(_ r: CGFloat) -> NSBezierPath {
+                    NSBezierPath(ovalIn: NSRect(x: center.x - r * s, y: center.y - r * s,
+                                                width: 2 * r * s, height: 2 * r * s))
+                }
+                NSGraphicsContext.current?.compositingOperation = .clear
+                disc(4.4).fill()
+                NSGraphicsContext.current?.compositingOperation = .sourceOver
+                disc(3.0).fill()
             }
             return true
         }

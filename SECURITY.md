@@ -2,8 +2,9 @@
 
 ## Supported Versions
 
-browbro is pre-1.0 and does not yet maintain multiple supported release lines. Security fixes are
-released against the latest version on `main`.
+browbro ships through two channels built from the same source: the DMG / Homebrew build
+(`0.1.x`, updated by Sparkle) and the Mac App Store build (`1.x`, updated by the store). Neither
+maintains older release lines — security fixes go out as the next release of each channel.
 
 ## Reporting a Vulnerability
 

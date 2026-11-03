@@ -378,15 +378,26 @@
     var link = document.getElementById('demo-link');
     if (!stage) return;
 
+    var scene = document.querySelector('.demo-scene') || stage;
     var state = { open: false, sel: 0, win: null };
-    var timers = [];   // autoplay schedule
-    var seq = [];      // launch choreography
+    var timers = [];   // autoplay schedule (pending only)
+    var seq = [];      // launch choreography (pending only)
     var userTook = false;
     var rowEls = [];
     var anchorEl = null;
 
-    function clearTimers() { timers.forEach(clearTimeout); timers = []; }
-    function clearSeq() { seq.forEach(clearTimeout); seq = []; }
+    // Each timeout drops itself from its list once it fires, so the lists only
+    // ever hold what is still pending and never grow across autoplay cycles.
+    function later(list, fn, at) {
+      var id = setTimeout(function () {
+        var k = list.indexOf(id);
+        if (k >= 0) list.splice(k, 1);
+        fn();
+      }, at);
+      list.push(id);
+    }
+    function clearTimers() { timers.forEach(clearTimeout); timers.length = 0; }
+    function clearSeq() { seq.forEach(clearTimeout); seq.length = 0; }
     function stopAutoplay() { userTook = true; clearTimers(); }
 
     function cursorSvg(z) {
@@ -434,12 +445,18 @@
       if (!anchorEl) { if (done) done(); return; }
       var a = anchorEl, pop = a.querySelector('.demo-pop');
       anchorEl = null; rowEls = [];
+      // A keyboard user focused on a row would otherwise be dropped to <body>.
+      function detach() {
+        var hadFocus = a.contains(document.activeElement);
+        if (a.parentNode) a.parentNode.removeChild(a);
+        if (hadFocus && link) link.focus({ preventScroll: true });
+        if (done) done();
+      }
       if (animate && pop && !reduceMotion) {
         pop.style.animation = 'bb-pop-out 100ms var(--ease-out) both';
-        setTimeout(function () { if (a.parentNode) a.parentNode.removeChild(a); if (done) done(); }, 110);
+        setTimeout(detach, 110);
       } else {
-        if (a.parentNode) a.parentNode.removeChild(a);
-        if (done) done();
+        detach();
       }
     }
 
@@ -490,7 +507,7 @@
     function runLaunch(i, viaAutoplay) {
       var target = TARGETS[i];
       function step(at, fn) {
-        seq.push(setTimeout(function () { if (viaAutoplay && userTook) return; fn(); }, at));
+        later(seq, function () { if (viaAutoplay && userTook) return; fn(); }, at);
       }
       step(70,  function () { paintSelection(-1); });        // blink off
       step(150, function () { paintSelection(i); });         // blink on
@@ -519,7 +536,7 @@
       var acc = 0;
       s.forEach(function (pair) {
         acc += pair[0];
-        timers.push(setTimeout(function () { if (userTook) return; pair[1](); }, acc));
+        later(timers, function () { if (userTook) return; pair[1](); }, acc);
       });
     }
 
@@ -530,51 +547,84 @@
       paintSelection(0);
     }
 
-    /* keyboard model */
-    window.addEventListener('keydown', function (e) {
+    /* keyboard model: mirrors PickerViewModel.handleKeyDown in the app.
+       ↑/↓ move (clamped at the ends), 1–9 open that target, a letter jumps to
+       the first target starting with it, ⏎ opens the highlighted one, esc
+       cancels. Bound to the demo scene, not the window: keys only count while
+       the picker is open AND focus is in the demo (the link or a row), so the
+       rest of the page keeps its arrows, Enter and scrolling. */
+    scene.addEventListener('keydown', function (e) {
+      if (e.defaultPrevented) return;      // the link/row already used this key
       if (!state.open || !anchorEl) return;
-      var n = TARGETS.length;
-      if (e.key === 'ArrowDown') { e.preventDefault(); stopAutoplay(); state.sel = (state.sel + 1) % n; paintSelection(state.sel); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); stopAutoplay(); state.sel = (state.sel - 1 + n) % n; paintSelection(state.sel); }
-      else if (e.key === 'Enter') { e.preventDefault(); pick(state.sel); }
-      else if (e.key === 'Escape') { stopAutoplay(); clearSeq(); state.open = false; removePicker(true); }
-      else {
-        var idx = -1;
-        for (var i = 0; i < TARGETS.length; i++) {
-          if (TARGETS[i].key.toLowerCase() === e.key.toLowerCase()) { idx = i; break; }
-        }
-        if (idx < 0) {
-          for (var j = 0; j < TARGETS.length; j++) {
-            if (TARGETS[j].name.charAt(0).toLowerCase() === e.key.toLowerCase()) { idx = j; break; }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;   // browser shortcuts
+      var n = TARGETS.length, key = e.key;
+      if (key === 'ArrowDown') { e.preventDefault(); stopAutoplay(); state.sel = Math.min(state.sel + 1, n - 1); paintSelection(state.sel); }
+      else if (key === 'ArrowUp') { e.preventDefault(); stopAutoplay(); state.sel = Math.max(state.sel - 1, 0); paintSelection(state.sel); }
+      else if (key === 'Enter') { e.preventDefault(); pick(state.sel); }
+      else if (key === 'Escape') { e.preventDefault(); stopAutoplay(); clearSeq(); state.open = false; removePicker(true); }
+      else if (/^[1-9]$/.test(key)) {
+        e.preventDefault();
+        if (Number(key) <= n) pick(Number(key) - 1);
+      }
+      else if (key.length === 1 && key.toLowerCase() !== key.toUpperCase()) {
+        e.preventDefault();
+        for (var i = 0; i < n; i++) {
+          if (TARGETS[i].name.toLowerCase().indexOf(key.toLowerCase()) === 0) {
+            stopAutoplay(); state.sel = i; paintSelection(i); break;
           }
         }
-        if (idx >= 0) { stopAutoplay(); state.sel = idx; paintSelection(idx); }
       }
     });
 
     if (link) {
       var open = function (e) { if (e) e.preventDefault(); openPicker(); };
       link.addEventListener('click', open);
-      link.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') open(e); });
+      link.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        // Once the visitor has the picker open, Enter commits, as in the app:
+        // leave it to the scene handler. Otherwise this key opens the picker,
+        // and open()'s preventDefault stops the same keypress from committing.
+        if (e.key === 'Enter' && userTook && state.open && anchorEl) return;
+        open(e);
+      });
     }
 
-    /* start */
+    /* start
+       Autoplay runs only while the demo is on screen and the tab is visible.
+       Losing either pauses it (pending timers cleared, desk reset); coming back
+       starts a fresh cycle. Once the visitor takes over it never resumes.
+       Reduced motion: no autoplay and no auto-open; the picker waits for the
+       visitor. */
+    var inView = false, running = false;
+    function syncAutoplay() {
+      if (userTook) return;
+      var want = inView && !document.hidden;
+      if (want === running) return;
+      running = want;
+      if (want) { scheduleAutoplay(); return; }
+      clearTimers(); clearSeq();
+      state.open = false;
+      removePicker(false); removeWindow(false);
+    }
+
     if (reduceMotion) {
-      openPickerAuto();          // show it, no motion, no loop
       userTook = true;
     } else {
-      // Kick off autoplay once the demo scrolls into view (feels intentional,
-      // and avoids animating far offscreen).
-      var started = false;
-      var begin = function () { if (started) return; started = true; scheduleAutoplay(); };
+      document.addEventListener('visibilitychange', syncAutoplay);
       if ('IntersectionObserver' in window) {
-        var scene = document.querySelector('.demo-scene');
+        // Start once the demo is properly in view (feels intentional); pause
+        // only after it has left the screen entirely.
         var io = new IntersectionObserver(function (entries) {
-          entries.forEach(function (en) { if (en.isIntersecting) { begin(); io.disconnect(); } });
-        }, { threshold: 0.35 });
-        if (scene) io.observe(scene); else begin();
+          entries.forEach(function (en) {
+            if (en.intersectionRatio >= 0.35) inView = true;
+            else if (!en.isIntersecting) inView = false;
+          });
+          syncAutoplay();
+        }, { threshold: [0, 0.35] });
+        io.observe(scene);
       } else {
-        begin();
+        inView = true;
+        syncAutoplay();
       }
     }
   })();
@@ -658,6 +708,9 @@
     var items = Array.prototype.slice.call(listEl.querySelectorAll('.faq-item'));
     items.forEach(function (item) {
       var btn = item.querySelector('.faq-q');
+      // aria-expanded always mirrors .is-open (which also hides the answer
+      // from assistive tech while collapsed; see styles.css).
+      btn.setAttribute('aria-expanded', item.classList.contains('is-open') ? 'true' : 'false');
       btn.addEventListener('click', function () {
         var isOpen = item.classList.contains('is-open');
         items.forEach(function (it) {
@@ -670,7 +723,8 @@
   })();
 
   /* =========================================================================
-     SUPPORT: picker keyboard nav (mirrors the app: arrows move, 1–3 open)
+     SUPPORT: picker keyboard nav (mirrors the app: arrows move and stop at
+     the ends, 1–3 open)
   ========================================================================= */
   (function () {
     var pop = document.querySelector('.support-pick__pop');
@@ -680,8 +734,8 @@
     // Scoped to focus-within so the shortcuts never hijack the rest of the page.
     pop.addEventListener('keydown', function (e) {
       var i = rows.indexOf(document.activeElement);
-      if (e.key === 'ArrowDown') { e.preventDefault(); rows[(i + 1) % rows.length].focus(); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); rows[(i - 1 + rows.length) % rows.length].focus(); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); rows[Math.min(i + 1, rows.length - 1)].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); rows[Math.max(i - 1, 0)].focus(); }
       else if (/^[1-9]$/.test(e.key)) {
         var n = Number(e.key) - 1;
         if (n < rows.length) { e.preventDefault(); rows[n].click(); }

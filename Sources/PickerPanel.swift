@@ -27,30 +27,54 @@ final class PickerController {
     private var panel: PickerPanel?
     private var resignObserver: (any NSObjectProtocol)?
 
-    func present(for url: URL, source: SourceApp? = nil) {
+    /// Route `url`: open it directly, or pop the picker at the cursor.
+    ///
+    /// - Parameter forcePicker: Always show the picker, ignoring the hold-a-key
+    ///   gate and "skip picker for a single target". For explicit re-routes
+    ///   (a recent link clicked in the menu) — the user is asking to choose.
+    func present(for url: URL, source: SourceApp? = nil, forcePicker: Bool = false) {
+        // Read the trigger key first: discovery below takes a moment, and the
+        // key may already be released by the time it's done.
+        let triggerHeld = Preferences.triggerModifier.isHeld
+
         dismiss(animated: false)
+
+        // AppDelegate filters what macOS delivers; this also covers callers
+        // that start here (menu recents), since the URL ends up on a browser's
+        // argv either way.
+        guard LinkPolicy.isRoutable(url) else {
+            pickerLog.notice("refusing URL with unsupported scheme \(url.scheme ?? "none", privacy: .public)")
+            return
+        }
 
         let catalog = TargetCatalog.shared
         catalog.refresh()
-        let targets = catalog.visible
+        // Nothing visible can still mean targets exist: the only shown one was
+        // "Chrome Incognito" and Private Windows got switched off, or Chrome's
+        // profiles became unreadable. Dropping the link silently would be the
+        // worst outcome, so offer everything rather than nothing.
+        let targets = catalog.visible.isEmpty ? catalog.all : catalog.visible
         guard !targets.isEmpty else {
             pickerLog.info("no targets; skipping picker")
             return
         }
+        if catalog.visible.isEmpty {
+            pickerLog.info("no visible targets; falling back to all \(targets.count, privacy: .public)")
+        }
 
         // Modifier mode: a plain click opens the chosen default directly; the
-        // picker only appears while the trigger key is held (read now, moments
-        // after the click). A hidden target can still be the default, so resolve
-        // against the full catalog before falling back to the top of the list.
-        if Preferences.requireModifierForPicker && !Preferences.triggerModifier.isHeld {
-            let target = catalog.all.first { $0.id == Preferences.defaultTargetID } ?? targets[0]
+        // picker only appears while the trigger key is held. A hidden or
+        // temporarily undiscovered target can still be the default, so the
+        // catalog resolves it (with a fallback) rather than this list.
+        if !forcePicker && Preferences.requireModifierForPicker && !triggerHeld {
+            let target = catalog.plainClickTarget() ?? targets[0]
             pickerLog.info("modifier mode, key not held; opening \(target.name, privacy: .public)")
             launch(target, url: url)
             return
         }
 
         // If only one target is shown, just open it (Settings: skip picker).
-        if targets.count == 1 && Preferences.skipSingle {
+        if !forcePicker && targets.count == 1 && Preferences.skipSingle {
             launch(targets[0], url: url)
             return
         }

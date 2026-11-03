@@ -15,7 +15,7 @@ struct OnboardingView: View {
         if let prior = DefaultBrowser.priorDefaultApp() { return prior }
         guard
             let url = DefaultBrowser.currentURL(),
-            Bundle(url: url)?.bundleIdentifier != Bundle.main.bundleIdentifier
+            !DefaultBrowser.isBrowBro(bundleID: Bundle(url: url)?.bundleIdentifier)
         else { return nil }
         let name = FileManager.default.displayName(atPath: url.path)
             .replacingOccurrences(of: ".app", with: "")
@@ -44,7 +44,9 @@ struct OnboardingView: View {
                 HStack(spacing: 8) {
                     AppIconChip(appURL: current.appURL, size: 30)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("Currently: \(current.name)")
+                        // Once BrowBro holds the default, this browser is the
+                        // one it replaced — "Currently" would be untrue.
+                        Text("\(isDefault ? "Previously" : "Currently"): \(current.name)")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(BB.textPrimary)
                         Text("We'll keep it as a target — restore it as default anytime.")
@@ -101,6 +103,10 @@ struct OnboardingView: View {
         .padding(20)
         .frame(width: 420)
         .background(BB.surfaceRaised)
+        .onAppear {
+            DefaultBrowser.capturePriorDefault()
+            isDefault = DefaultBrowser.isBrowBro
+        }
     }
 }
 

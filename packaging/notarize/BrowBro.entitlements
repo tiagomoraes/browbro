@@ -4,9 +4,12 @@
 <dict>
   <!--
     Minimal hardened-runtime entitlements for notarization. BrowBro receives
-    kAEGetURL Apple Events and launches browsers via LaunchServices; neither
-    needs a special entitlement. Add keys here only if a future feature does
-    (e.g. com.apple.security.automation.apple-events to script another app).
+    kAEGetURL Apple Events and launches every browser through LaunchServices
+    (NSWorkspace) - including Chrome-profile and private-window launches, whose
+    flags travel as OpenConfiguration.arguments; it never spawns a browser
+    binary itself. Neither needs a special entitlement. Add keys here only if a
+    future feature does (e.g. com.apple.security.automation.apple-events to
+    script another app).
   -->
 </dict>
 </plist>

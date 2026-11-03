@@ -1,4 +1,7 @@
 import AppKit
+import os
+
+private let linkLog = Logger(subsystem: "cloud.tiagomoraes.browbro", category: "links")
 
 // Four-char codes for the "GetURL" Apple Event. Defined inline so we don't have
 // to import the deprecated Carbon framework just for three constants.
@@ -13,6 +16,14 @@ private let kGetURLDirectObject = AEKeyword(0x2D2D_2D2D)
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
+        // Re-establish sandbox access to Chrome's profile folder from the
+        // persisted security-scoped bookmark (no-op until the user has granted
+        // it, and no-op outside the sandbox where TCC + the real-home path work).
+        // This has to happen *here*, not in didFinishLaunching: on a cold launch
+        // by a clicked link, the GetURL event is dispatched between the two, and
+        // the first picker would otherwise list no Chrome profiles.
+        ChromeAccess.restorePersistedAccess()
+
         // Register early so a link that *launched* us is still delivered.
         NSAppleEventManager.shared().setEventHandler(
             self,
@@ -33,10 +44,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Re-establish sandbox access to Chrome's profile folder from the
-        // persisted security-scoped bookmark (no-op until the user has granted
-        // it, and no-op outside the sandbox where TCC + the real-home path work).
-        ChromeAccess.restorePersistedAccess()
+        // Whatever holds the default right now is "the previous browser" if the
+        // user hands the default to BrowBro later — even from System Settings.
+        DefaultBrowser.capturePriorDefault()
 
         #if SPARKLE
         // Start Sparkle so scheduled update checks run in the background (the
@@ -81,7 +91,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for url in urls { handle(url) }
     }
 
+    /// The single entry point for every URL macOS hands us (GetURL event and
+    /// `application(_:open:)`). Anything that isn't http, https or file is
+    /// dropped here, before it can reach history, the picker or a browser's argv
+    /// (see `LinkPolicy`).
     private func handle(_ url: URL) {
+        guard LinkPolicy.isRoutable(url) else {
+            linkLog.notice("dropped URL with unsupported scheme \(url.scheme ?? "none", privacy: .public): \(url.absoluteString, privacy: .private(mask: .hash))")
+            return
+        }
         // The activation raise has already happened by the time the URL event
         // arrives; put a background Settings window back where it was.
         SettingsWindowController.shared.restoreOrderAfterActivationRaise()

@@ -2,12 +2,22 @@ name: Mac App Store
 
 # Ships the sandboxed BrowBroMAS target: archive, upload, product page, submit.
 #
-# READ THIS BEFORE PUBLISHING A RELEASE. This workflow used to stop after the
-# upload, and its safety argument was that uploading is not publishing. That is no
-# longer true: on a published (non-prerelease) GitHub Release it now also attaches
-# the build to the version, pushes the product page, and submits for review. A
-# `gh release publish` therefore puts BrowBro in front of App Review. Cut a
-# prerelease, or dispatch with submit=false, when that is not what you want.
+# READ THIS BEFORE PUSHING A mas-v TAG. Pushing `mas-v<version>` (mas-v1.1)
+# uploads the build, pushes the product page, chooses the build for the version
+# and submits it for review — it puts BrowBro in front of App Review without
+# anyone opening App Store Connect. `mas-v<version>-<anything>` (mas-v1.1-rc1)
+# goes as far as the product page and stops there. Either way <version> has to
+# be BrowBroMAS's MARKETING_VERSION in project.yml at the tagged commit, or the
+# run fails before any secret reaches the runner.
+#
+# GitHub Releases don't trigger this. They belong to the DMG channel, whose
+# 0.1.x numbers have nothing to do with the store's 1.x. With every release also
+# shipping the store binary, a DMG-only fix would either fail here, because
+# Connect had closed the store version's train, or — once someone bumped the
+# store version to get past that — go to App Review carrying What's New copy
+# written for another release. A tag push also creates no Release, so a store
+# release can never become the "latest" one that the site's
+# releases/latest/download/BrowBro.dmg link resolves to.
 #
 # Why CI and not a maintainer's Mac: App Store Connect refuses builds made with a
 # beta or Release Candidate Xcode (ITMS-90301). That was once an absolute barrier
@@ -15,21 +25,24 @@ name: Mac App Store
 # — but it is a question of which toolchain is installed, not of which machine:
 # BrowBro 1.0 (8) and (9) were both uploaded by hand from a maintainer's Mac on
 # 2026-09-13 once Xcode 27.0 shipped. CI remains the default because the runner is
-# a known-good production macOS and because it is the only place the release
-# trigger can reach.
+# a known-good production macOS and because it is the only place the tag trigger
+# can reach.
 #
 # The DMG / Homebrew / Sparkle channel is untouched: it is still cut by hand with
 # packaging/notarize/notarize-release.sh (docs/NOTARIZING.md), because it needs the
 # Developer ID identity and the EdDSA update key that never leave that machine.
 
 on:
-  # Every published GitHub Release ships the store channel too, so the two
-  # channels can't silently drift to different versions.
-  release:
-    types: [published]
+  # The store channel ships when someone tags it, and only then. The two channels
+  # are versioned independently on purpose, so what must not drift is narrower:
+  # the version a tag names and the version the binary carries. The "Check the
+  # tag" step holds that line. The DMG channel's v0.1.x tags don't match.
+  push:
+    tags: ["mas-v*"]
 
   # The manual entry point. Needed for a first upload, and for re-uploading after
-  # Connect rejects a build — neither of which is worth cutting a release for.
+  # Connect rejects a build — neither of which is worth a tag. Nothing here is
+  # checked against a tag; the inputs say what happens.
   workflow_dispatch:
     inputs:
       ref:
@@ -68,6 +81,8 @@ permissions:
 jobs:
   upload:
     name: Archive and upload
+    # A push that deletes a mas-v tag carries deleted: true. Nothing to ship.
+    if: ${{ !github.event.deleted }}
     runs-on: macos-26
 
     env:
@@ -83,29 +98,82 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # A release builds its own tag; a manual run builds whatever it was
-          # pointed at, defaulting to the branch the workflow was dispatched from.
-          ref: ${{ inputs.ref || github.event.release.tag_name || github.ref }}
+          # A tag push builds its tag (inputs are null on a push); a manual run
+          # builds whatever it was pointed at, defaulting to the branch the
+          # workflow was dispatched from.
+          ref: ${{ inputs.ref || github.ref }}
 
+      # The tag names a version; project.yml says what version the binary will
+      # carry, and fastlane reads the same field to decide which version record
+      # to fill in. When tag and file disagree, stop here, before a secret
+      # reaches the runner, rather than upload a build the tag never asked for.
+      #
+      # The rest of the tag decides submission: mas-v1.1 goes to review,
+      # mas-v1.1-<anything> stops after the product page. "mas-v" carries a
+      # hyphen of its own, so it comes off before the suffix is looked for.
+      - name: Check the tag against project.yml
+        id: tag
+        if: ${{ github.event_name == 'push' }}
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          rest=${TAG#mas-v}
+          version=${rest%%-*}
+          suffix=${rest#"$version"}
+          if [ "$rest" = "$TAG" ] || ! [[ "$version" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]] || [ "$suffix" = "-" ]; then
+            echo "✗ '$TAG' is not mas-v<version> or mas-v<version>-<label> (e.g. mas-v1.1, mas-v1.1-rc1)." >&2
+            exit 1
+          fi
+          project=$(scripts/project-yml.sh targets.BrowBroMAS.settings.base.MARKETING_VERSION)
+          if [ "$version" != "$project" ]; then
+            echo "✗ $TAG ships $version, but BrowBroMAS's MARKETING_VERSION in project.yml is $project." >&2
+            echo "  Tag the commit that bumps project.yml, or delete the tag and push the right one." >&2
+            exit 1
+          fi
+          submit=true
+          [ -z "$suffix" ] || submit=false
+          echo "submit=$submit" >> "$GITHUB_OUTPUT"
+          echo "$TAG → BrowBroMAS $version; submit for review: $submit"
+
+      # Connect refuses uploads from a beta or Release Candidate Xcode
+      # (ITMS-90301), and says so only after a full archive and export. Their
+      # CFBundleShortVersionString is a plain "26.1" like any release's, so the
+      # version can't tell them apart; the bundle name and the build number can.
+      # The name is read after resolving symlinks, because the runner images
+      # alias Xcode_27.2.app to Xcode_27.2_Release_Candidate.app. A seed build
+      # number is four digits and a letter (17A5241e). The letter alone proves
+      # nothing: Xcode 27.0 itself, the release that uploaded 1.0, is 27A266a.
       - name: Select a released Xcode
         run: |
           set -euo pipefail
-          best=""; best_ver=""
+          best=""; best_ver=""; best_build=""
           for app in /Applications/Xcode*.app; do
-            ver=$(/usr/bin/defaults read "$app/Contents/Info" CFBundleShortVersionString 2>/dev/null) || continue
+            real=$(cd "$app" 2>/dev/null && pwd -P) || continue
+            ver=$(/usr/bin/defaults read "$real/Contents/Info" CFBundleShortVersionString 2>/dev/null) || continue
+            build=$(/usr/bin/defaults read "$real/Contents/version" ProductBuildVersion 2>/dev/null) || build=""
+            name=$(basename "$real" .app | tr '[:upper:]' '[:lower:]')
+            case "$name" in
+              *beta*|*release*candidate*|*[-_.[:space:]]rc|*[-_.[:space:]]rc[-_.[:space:]0-9]*)
+                echo "Skipping $app: $(basename "$real") is a prerelease"; continue ;;
+            esac
+            if [ -z "$build" ] || [[ "$build" =~ [0-9]{4}[[:lower:]]$ ]]; then
+              echo "Skipping $app: build '${build:-unreadable}' is not a release build"; continue
+            fi
             major=${ver%%.*}
             [ "$major" -le "$MAX_XCODE_MAJOR" ] || continue
             if [ -z "$best_ver" ] || [ "$(printf '%s\n%s\n' "$ver" "$best_ver" | sort -V | tail -1)" = "$ver" ]; then
-              best="$app"; best_ver="$ver"
+              best="$real"; best_ver="$ver"; best_build="$build"
             fi
           done
           if [ -z "$best" ]; then
-            echo "✗ No Xcode ≤ $MAX_XCODE_MAJOR on this runner. Available:" >&2
+            echo "✗ No released Xcode ≤ $MAX_XCODE_MAJOR on this runner. Available:" >&2
             ls -d /Applications/Xcode*.app >&2
             echo "  App Store Connect rejects newer ones with ITMS-90301 until Apple" >&2
             echo "  flips the flag; raise MAX_XCODE_MAJOR once it has." >&2
             exit 1
           fi
+          echo "Selected $best ($best_ver, $best_build)"
           sudo xcode-select -s "$best/Contents/Developer"
           xcodebuild -version
 
@@ -258,10 +326,12 @@ jobs:
           OVERRIDE: ${{ inputs.build_number }}
         run: |
           set -euo pipefail
-          # A build number may only be used once per version, and Connect counts
-          # the ones that were uploaded and never shipped too. Asking it is the
-          # only way to be right: 1.0 reached build 9 through two by-hand uploads
-          # that no counter in this repository ever saw.
+          # A Mac build number may be used only once and has to keep rising from
+          # one version to the next, and Connect counts the ones that were
+          # uploaded and never shipped too. Asking it is the only way to be right:
+          # 1.0 reached build 9 through two by-hand uploads that no counter in
+          # this repository ever saw. The lane takes the highest of Connect's
+          # answers and project.yml's floor; see fastlane/Fastfile.
           if [ -n "$OVERRIDE" ]; then
             echo "build_number=$OVERRIDE" >> "$GITHUB_OUTPUT"
             echo "Using the dispatched override → $OVERRIDE"
@@ -317,8 +387,8 @@ jobs:
         run: |
           set -euo pipefail
           OPTS="$RUNNER_TEMP/ExportOptions-ci.plist"
-          DESTINATION=export
-          [ "${DRY_RUN:-false}" = "true" ] || DESTINATION=upload
+          DESTINATION="export"
+          [ "${DRY_RUN:-false}" = "true" ] || DESTINATION="upload"
 
           cat > "$OPTS" <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
@@ -363,8 +433,12 @@ jobs:
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID"
 
-      # On a published, non-prerelease GitHub Release this submits for review.
-      # On a dispatch it does what the inputs say. See the note at the top of the file.
+      # Waits until Connect has processed the upload and found it VALID, then
+      # pushes the product page. Only a submission chooses the build for the
+      # version: without one, the build sits processed in Connect for a human to
+      # pick on the version page. A mas-v<version> tag submits and
+      # mas-v<version>-<label> doesn't; a dispatch does what its inputs say. See
+      # the note at the top of the file.
       - name: Publish the product page and submit
         if: ${{ !inputs.dry_run }}
         env:
@@ -372,8 +446,11 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
           ASC_KEY_CONTENT: ${{ secrets.APPSTORE_CONNECT_PRIVATE_KEY }}
           BUILD_NUMBER: ${{ steps.build_number.outputs.build_number }}
-          # A prerelease is how you cut a tag without sending anything to review.
-          SUBMIT: ${{ github.event_name == 'release' && !github.event.release.prerelease || inputs.submit }}
+          # On a push the tag step always writes "true" or "false", both
+          # non-empty and so taken as they are. On a dispatch that step is
+          # skipped, its output is empty, and the input decides.
+          SUBMIT: ${{ steps.tag.outputs.submit || inputs.submit || false }}
+          # A tag never replaces screenshots; only a dispatch can ask for that.
           SCREENSHOTS: ${{ inputs.screenshots || false }}
         run: |
           set -euo pipefail

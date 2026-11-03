@@ -38,14 +38,22 @@ jobs:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
-          if [[ "$BASE_REF" == "main" && "$HEAD_REF" =~ ^hotfix/ ]]; then
-            echo "OK: hotfix branch targeting main"
+          # A hotfix PRs into main, then back into develop so the fix isn't lost
+          # (CONTRIBUTING.md, "Hotfixes"). Nothing else goes from hotfix/ anywhere.
+          if [[ "$BASE_REF" =~ ^(main|develop)$ && "$HEAD_REF" =~ ^hotfix/ ]]; then
+            echo "OK: hotfix branch targeting $BASE_REF"
+            exit 0
+          fi
+          # A release with nothing to stabilize goes straight from develop to
+          # main (CONTRIBUTING.md, "Release process"). That head has no prefix to match.
+          if [[ "$BASE_REF" == "main" && "$HEAD_REF" == "develop" ]]; then
+            echo "OK: develop → main release PR"
             exit 0
           fi
           if [[ "$HEAD_REF" =~ ^(feat|fix|chore|docs|refactor|test|perf|ci|build|style|release)/ ]]; then
             echo "OK: $HEAD_REF"
             exit 0
           fi
-          echo "Branch '$HEAD_REF' doesn't match an allowed prefix (feat/, fix/, chore/, docs/, refactor/, test/, perf/, ci/, build/, style/, release/, hotfix/)."
+          echo "Branch '$HEAD_REF' doesn't match an allowed prefix (feat/, fix/, chore/, docs/, refactor/, test/, perf/, ci/, build/, style/, release/, hotfix/), and isn't develop opening a release PR into main."
           echo "See CONTRIBUTING.md for the naming convention."
           exit 1

@@ -30,10 +30,9 @@
 <link rel="mask-icon" href="assets/favicon.svg" color="#2c6bed">
 <link rel="apple-touch-icon" href="assets/app-icon.png">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Fonts are self-hosted (see styles.css); the only third-party request is
+     the GitHub star count. -->
 <link rel="preconnect" href="https://api.github.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="styles.css">
 
 <!-- Set theme before paint to avoid a flash. The `js` class is what unlocks the
@@ -580,7 +579,7 @@
     </div>
     <div class="faq-item bb-reveal" style="--i:4">
       <button class="faq-q" aria-expanded="false" aria-controls="faq-a-5" id="faq-q-5"><span class="q">How do I pick without the mouse?</span><span class="faq-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
-      <div class="faq-a" id="faq-a-5" role="region" aria-labelledby="faq-q-5"><div class="faq-a__in">It's keyboard-first: press 1–9 or a target's first letter to jump, ↑ ↓ to move, ⏎ to open the highlighted one, esc to cancel.</div></div>
+      <div class="faq-a" id="faq-a-5" role="region" aria-labelledby="faq-q-5"><div class="faq-a__in">It's keyboard-first: press 1–9 to open that target straight away, or a target's first letter to jump to it, ↑ ↓ to move, ⏎ to open the highlighted one, esc to cancel.</div></div>
     </div>
     <div class="faq-item bb-reveal" style="--i:5">
       <button class="faq-q" aria-expanded="false" aria-controls="faq-a-6" id="faq-q-6"><span class="q">Which macOS do I need?</span><span class="faq-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
@@ -592,7 +591,7 @@
     </div>
     <div class="faq-item bb-reveal" style="--i:7">
       <button class="faq-q" aria-expanded="false" aria-controls="faq-a-7" id="faq-q-7"><span class="q">Does BrowBro see my links?</span><span class="faq-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
-      <div class="faq-a" id="faq-a-7" role="region" aria-labelledby="faq-q-7"><div class="faq-a__in">Everything happens locally on your Mac. BrowBro just routes the link to the browser you choose. Nothing leaves your machine.</div></div>
+      <div class="faq-a" id="faq-a-7" role="region" aria-labelledby="faq-q-7"><div class="faq-a__in">Only to route it, and only on your Mac: BrowBro hands the link to the browser you choose, and your links never leave your machine. The one request BrowBro makes on its own is the direct download's update check (on by default, switchable in Settings), which never includes your links; the Mac App Store build makes none. Details in the <a href="/privacy/">privacy policy</a>.</div></div>
     </div>
     <div class="faq-item bb-reveal" style="--i:8">
       <button class="faq-q" aria-expanded="false" aria-controls="faq-a-8" id="faq-q-8"><span class="q">How can I support BrowBro?</span><span class="faq-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></button>
@@ -629,7 +628,7 @@
         <a href="https://github.com/tiagomoraes/browbro" target="_blank" rel="noopener">GitHub</a>
         <a href="https://github.com/tiagomoraes/browbro/blob/develop/DESIGN.md" target="_blank" rel="noopener">Design</a>
         <a href="https://github.com/tiagomoraes/browbro/blob/develop/CONTRIBUTING.md" target="_blank" rel="noopener">Contributing</a>
-        <a href="/privacy">Privacy</a>
+        <a href="/privacy/">Privacy</a>
       </div>
     </div>
     <p class="footer__credit">

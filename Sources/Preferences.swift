@@ -4,14 +4,22 @@ import ServiceManagement
 
 /// A keyboard modifier the user can hold to summon the picker. Backed by its
 /// raw string so it persists cleanly in UserDefaults / `@AppStorage`.
+///
+/// ⌃ (Control) is deliberately absent: ⌃-click is a secondary click on macOS,
+/// so the source app shows a context menu and the link never reaches BrowBro.
+/// Versions up to 0.1.7 offered it; a saved `"control"` no longer decodes, and
+/// both readers (`Preferences.triggerModifier` and Settings' `@AppStorage`)
+/// fall back to the default, ⌥.
 enum TriggerModifier: String, CaseIterable {
-    case command, option, control, shift
+    case command, option, shift
+
+    /// What an unknown or retired saved value (e.g. `"control"`) reads as.
+    static let fallback: TriggerModifier = .option
 
     var flag: NSEvent.ModifierFlags {
         switch self {
         case .command: .command
         case .option: .option
-        case .control: .control
         case .shift: .shift
         }
     }
@@ -21,7 +29,6 @@ enum TriggerModifier: String, CaseIterable {
         switch self {
         case .command: "\u{2318}"   // ⌘
         case .option: "\u{2325}"    // ⌥
-        case .control: "\u{2303}"   // ⌃
         case .shift: "\u{21E7}"     // ⇧
         }
     }
@@ -30,7 +37,6 @@ enum TriggerModifier: String, CaseIterable {
         switch self {
         case .command: "Command"
         case .option: "Option"
-        case .control: "Control"
         case .shift: "Shift"
         }
     }
@@ -88,7 +94,7 @@ enum Preferences {
 
     /// The key held to summon the picker in modifier mode.
     static var triggerModifier: TriggerModifier {
-        get { TriggerModifier(rawValue: UserDefaults.standard.string(forKey: triggerModifierKey) ?? "") ?? .option }
+        get { TriggerModifier(rawValue: UserDefaults.standard.string(forKey: triggerModifierKey) ?? "") ?? .fallback }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: triggerModifierKey) }
     }
 

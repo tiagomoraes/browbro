@@ -1,5 +1,5 @@
 # browbro
-BowBro is a macos application that let's the user select the browser they want to use to open a link from the web.
+BrowBro is a macOS application that lets the user select the browser they want to use to open a link from the web.
 
 ## Install
 
@@ -32,6 +32,11 @@ signature-verified and installed in place. Homebrew users can also just
 `brew upgrade --cask browbro`. See [docs/UPDATES.md](docs/UPDATES.md) for how releases are
 signed and published.
 
+One exception: after 0.1.7, BrowBro's bundle ID changes to `cloud.tiagomoraes.browbro`, and
+macOS treats that as a different app, so copies of 0.1.7 or earlier won't update across it.
+Download the new DMG once (or `brew reinstall --cask browbro`); updates are automatic again
+from there.
+
 A separate Mac App Store binary (`BrowBroMAS`) is sandboxed and does not include
 Sparkle — the store updates that copy. See [docs/MAS.md](docs/MAS.md).
 
@@ -46,7 +51,7 @@ the printed URL.
 
 ## Contributing
 
-Contributions are welcome! Active development happens on the `develop` branch. `main` is
-reserved for tagged releases. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for the branching
-model, naming conventions, and release process, and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-before opening an issue or pull request.
+Contributions are welcome! Active development happens on the `develop` branch. `main` holds
+tagged releases and the live website. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for the
+branching model, naming conventions, and release process, and
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before opening an issue or pull request.

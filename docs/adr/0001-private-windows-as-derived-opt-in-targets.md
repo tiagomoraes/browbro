@@ -33,6 +33,15 @@ gates *whether* the picker appears, never *how* a pick behaves.
   `createsNewApplicationInstance = true`, so Launch Services delivers the flags and
   Chromium/Firefox still forward to the running instance. The DMG/Homebrew build keeps
   the verified `Process()` path. See [docs/MAS.md](../MAS.md).
+- **Update (2026-11-03).** Two corrections to the bullets above. (1) The DMG/Homebrew
+  build now launches through `NSWorkspace.openApplication` too: a `Process()` child made a
+  cold-started browser BrowBro's child, so macOS attributed its camera/microphone prompts
+  to BrowBro. Unsandboxed, Launch Services delivers the arguments, and the browser still
+  forwards to its running instance — re-verified live for Chrome profiles and incognito
+  (`BrowserLauncher.launch`, which replaced `openInChrome`). (2) The Mac App Store
+  amendment does not hold: Launch Services drops `OpenConfiguration.arguments` for a
+  sandboxed caller, so profile and private-window targets lose the link in `BrowBroMAS`.
+  Open; see [docs/MAS.md](../MAS.md#known-issue-flagged-launches-in-the-sandbox).
 - **Chrome profiles compose.** An incognito window belongs to a profile (extensions,
   enterprise policy), so a Private Window variant of a specific Chrome Profile launches
   `--profile-directory=X --incognito` deterministically; a browser-level Chrome variant

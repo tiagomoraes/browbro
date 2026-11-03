@@ -16,7 +16,9 @@ Sandboxed, Sparkle-free variant of BrowBro for App Store Connect.
   (1920×1080, 16:9, 17.6s) — previews are a different shape than screenshots.
 
 Uploads run from [`.github/workflows/app-store.yml`](../../.github/workflows/app-store.yml)
-on a `macos-26` runner — a maintainer on a macOS seed has no Xcode that Connect accepts.
+on a `macos-26` runner when a `mas-v<version>` tag is pushed. A maintainer's Mac can
+upload too, as long as its Xcode is a released one Connect accepts: 1.0 (8) and (9) went
+up by hand with Xcode 27.0.
 
 The walkthrough — Connect listing, screenshots, review notes, dual-channel caveats —
 is [docs/MAS.md](../../docs/MAS.md).
