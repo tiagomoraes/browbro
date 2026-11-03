@@ -19,7 +19,7 @@ Closes #<!-- issue number, if any -->
 ## Target branch
 
 - [ ] This PR targets `develop` (default for `feat/`, `fix/`, `chore/`, etc.)
-- [ ] This is a `hotfix/` PR and intentionally targets `main`
+- [ ] This intentionally targets `main`: a `release/` or `hotfix/` branch, `develop` itself, or a site-only publish (see [CONTRIBUTING.md](../CONTRIBUTING.md))
 
 ## How was this tested?
 

@@ -2,10 +2,14 @@
 #
 # The build half is .github/workflows/app-store.yml: it archives BrowBroMAS,
 # verifies it, and uploads it with xcodebuild. What is left after that is
-# everything Connect asks a human for — which build belongs to the version, what
-# the product page says, and the act of submitting. These lanes do that part.
+# everything Connect asks a human for — which build number is free, when the
+# upload is usable, what the product page says, and, when asked to submit,
+# which build the version ships and the act of submitting. These lanes do that
+# part.
 #
 # Nothing here builds or signs anything.
+
+require "yaml"
 
 default_platform(:mac)
 
@@ -23,37 +27,65 @@ def asc_key
   )
 end
 
-# MARKETING_VERSION from project.yml, which is what Connect calls the version
-# string. Read from the file rather than passed in, so the workflow cannot ship a
-# build against a version the repository does not agree with.
+# One of BrowBroMAS's own build settings in project.yml. Read from the file
+# rather than passed in, so the workflow cannot ship a build against a version
+# the repository does not agree with.
+def mas_setting(key)
+  yml = YAML.safe_load_file(File.expand_path("../project.yml", __dir__))
+  settings = yml.dig("targets", "BrowBroMAS", "settings", "base") or
+    UI.user_error!("No BrowBroMAS target settings in project.yml")
+  value = settings[key] or UI.user_error!("BrowBroMAS has no #{key} in project.yml")
+  value.to_s
+end
+
+# MARKETING_VERSION, which is what Connect calls the version string.
 def marketing_version
-  yml = File.read(File.expand_path("../project.yml", __dir__))
-  mas = yml[/^  BrowBroMAS:.*?(?=^  \w|^schemes:)/m] or
-    UI.user_error!("No BrowBroMAS target in project.yml")
-  mas[/MARKETING_VERSION:\s*"([^"]+)"/, 1] or
-    UI.user_error!("BrowBroMAS has no MARKETING_VERSION in project.yml")
+  mas_setting("MARKETING_VERSION")
+end
+
+# Build numbers are compared as numbers, never as the strings Connect returns.
+# BrowBro's are plain integers; anything else is a mistake worth stopping on.
+def build_integer(value, what)
+  Integer(value.to_s, 10)
+rescue ArgumentError
+  UI.user_error!("#{what} is #{value.inspect}, not a whole-number build")
 end
 
 platform :mac do
-  desc "Print the build number to archive: one past the highest Connect has seen"
-  desc "for this MARKETING_VERSION. Writes it to $GITHUB_OUTPUT when running in Actions."
+  desc "Print the build number to archive: one past the highest of Connect's latest upload"
+  desc "for this MARKETING_VERSION, its latest upload for any version, and BrowBroMAS's"
+  desc "CURRENT_PROJECT_VERSION in project.yml. Writes it to $GITHUB_OUTPUT in Actions."
   lane :next_build_number do
     version = marketing_version
 
-    # Connect refuses a build number it has already accepted for a version, and
-    # it remembers ones that were uploaded and never shipped — 8 and 9 of 1.0
-    # both count, though only 9 went to review. Asking is the only way to be
-    # right; a counter in the repo drifts the moment anyone uploads by hand.
-    latest = latest_testflight_build_number(
-      api_key: asc_key,
-      app_identifier: APP_ID,
-      platform: "osx",
-      version: version,
-      initial_build_number: 0
-    )
+    # Connect refuses a build number it has already accepted, and it remembers
+    # ones that were uploaded and never shipped — 8 and 9 of 1.0 both count,
+    # though only 9 went to review. A Mac build number also has to keep rising
+    # from one version to the next, so 1.1 carries on from 1.0's numbers rather
+    # than starting again at 1. Asking is the only way to be right; a counter in
+    # the repo drifts the moment anyone uploads by hand.
+    #
+    # latest_testflight_build_number answers with the most recent upload (Connect
+    # sorts by upload date), not the highest number, so no single answer is
+    # trusted: take the largest of this version's, any version's, and the floor
+    # project.yml records for the last build that shipped.
+    latest = lambda do |for_version|
+      found = latest_testflight_build_number(
+        api_key: asc_key,
+        app_identifier: APP_ID,
+        platform: "osx",
+        version: for_version,
+        initial_build_number: 0
+      )
+      build_integer(found, "Connect's latest build for #{for_version || 'any version'}")
+    end
+    this_version = latest.call(version)
+    any_version = latest.call(nil)
+    floor = build_integer(mas_setting("CURRENT_PROJECT_VERSION"), "BrowBroMAS's CURRENT_PROJECT_VERSION")
 
-    build = latest.to_i + 1
-    UI.success("#{version}: highest build in Connect is #{latest} → archiving #{build}")
+    build = [this_version, any_version, floor].max + 1
+    UI.success("#{version}: latest upload for #{version} is #{this_version}, latest for any version is " \
+               "#{any_version}, project.yml floor is #{floor} → archiving #{build}")
 
     if ENV["GITHUB_OUTPUT"]
       File.open(ENV["GITHUB_OUTPUT"], "a") do |f|
@@ -64,39 +96,56 @@ platform :mac do
     build
   end
 
-  desc "Block until Connect lists the build, which is when it becomes attachable."
+  desc "Block until Connect has processed the build and found it VALID, the only state in"
+  desc "which a version can ship it. Fails on INVALID or FAILED, or after 45 minutes."
   lane :wait_for_build do |options|
     version = marketing_version
-    want = options[:build_number].to_i
-    UI.user_error!("wait_for_build needs build_number:") if want.zero?
+    UI.user_error!("wait_for_build needs build_number:") if options[:build_number].to_s.empty?
+    want = build_integer(options[:build_number], "build_number:").to_s
 
     # Connect takes minutes to process a macOS upload — 1.0 (9) took about five on
-    # 2026-09-13 — and a build it has not finished with cannot be attached to a
-    # version. There is no "is it done" flag worth trusting here, so this polls the
-    # thing we actually need to be true: that Connect reports the build as the
-    # highest one for this version, which is exactly when the Build picker offers it.
-    deadline = Time.now + (45 * 60)
-    loop do
-      latest = latest_testflight_build_number(
-        api_key: asc_key,
-        app_identifier: APP_ID,
+    # 2026-09-13 — and a submission can only ship a build that came out VALID.
+    # Seeing the build listed proves nothing: the upload is listed from the
+    # moment it arrives, still PROCESSING, and stays listed if it fails. So this
+    # watches the build's own processing state. BuildWatcher returns once the
+    # build leaves PROCESSING, which includes INVALID and FAILED; the state is
+    # checked after.
+    #
+    # BuildWatcher is plain Spaceship. The actions above authenticate themselves
+    # from api_key:, but this uses whatever token Spaceship holds, so set it.
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: asc_key)
+    app = Spaceship::ConnectAPI::App.find(APP_ID) or
+      UI.user_error!("No app with bundle id #{APP_ID} in App Store Connect")
+
+    timeout = 45 * 60
+    deadline = Time.now + timeout
+    begin
+      build = FastlaneCore::BuildWatcher.wait_for_build_processing_to_be_complete(
+        app_id: app.id,
         platform: "osx",
-        version: version,
-        initial_build_number: 0
-      ).to_i
-
-      break UI.success("Connect is showing #{version} (#{want}).") if latest >= want
-
-      if Time.now > deadline
-        UI.user_error!("#{version} (#{want}) never showed up in Connect; highest is #{latest}. " \
-                       "Processing can also fail silently — check the build's status in App Store Connect.")
-      end
-      UI.message("Waiting for #{version} (#{want}) to finish processing; highest so far is #{latest}...")
-      sleep(30)
+        app_version: version,
+        build_version: want,
+        poll_interval: 30,
+        timeout_duration: timeout,
+        return_spaceship_testflight_build: false
+      )
+    rescue FastlaneCore::Interface::FastlaneCrash
+      # BuildWatcher reports its timeout as a crash. Any other crash isn't ours.
+      raise if Time.now < deadline
+      UI.user_error!("#{version} (#{want}) was not VALID after #{timeout / 60} minutes: still processing, or " \
+                     "never listed — the lines above say which. Check the build in App Store Connect.")
     end
+
+    state = build.processing_state
+    unless state == Spaceship::ConnectAPI::Build::ProcessingState::VALID
+      UI.user_error!("Connect finished processing #{version} (#{want}) as #{state}, so no version can ship it. " \
+                     "The build's page in App Store Connect says why; fix that and upload again.")
+    end
+    UI.success("#{version} (#{want}) is processed and VALID.")
   end
 
-  desc "Push the product page, attach the build to the version, and optionally submit."
+  desc "Push the product page for MARKETING_VERSION. With submit:true, also choose build_number:"
+  desc "as the build that version ships and submit it for review; without, no build is chosen."
   desc "Options: build_number: (required), submit: true|false, screenshots: true|false"
   lane :publish do |options|
     version = marketing_version
@@ -128,6 +177,9 @@ platform :mac do
       app_identifier: APP_ID,
       platform: "osx",
       app_version: version,
+      # Read only when submitting: choosing the build for the version is part of
+      # deliver's submission, and nothing else touches it. Run wait_for_build
+      # first — deliver picks this number as it stands, processed or not.
       build_number: build,
 
       # The binary is already in Connect — the workflow put it there with
@@ -163,9 +215,10 @@ platform :mac do
     )
 
     if submit
-      UI.success("#{version} (#{build}) submitted for review.")
+      UI.success("#{version} ships build #{build} and is submitted for review.")
     else
-      UI.success("#{version} (#{build}) staged in Connect. Submit from App Review when ready.")
+      UI.success("#{version}: product page updated. No build is chosen for it yet — pick #{build} on the " \
+                 "version page in App Store Connect and submit from there when ready.")
     end
   end
 end
