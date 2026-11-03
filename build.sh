@@ -24,6 +24,9 @@ xcodebuild \
 
 echo "▶ Installing to /Applications (stable location for TCC & LaunchServices)…"
 pkill -x BrowBro 2>/dev/null || true
+# Replace, don't merge: ditto onto an existing bundle keeps files the new build
+# no longer has (e.g. after a Sparkle bump), which breaks the code signature.
+rm -rf "$INSTALLED"
 ditto "$APP" "$INSTALLED"
 
 echo "▶ Registering with LaunchServices…"

@@ -81,7 +81,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # A release builds its own tag; a manual run builds whatever it was
           # pointed at, defaulting to the branch the workflow was dispatched from.
@@ -111,6 +111,24 @@ jobs:
 
       - name: Install XcodeGen
         run: brew install xcodegen
+
+      # fastlane owns the Connect side: the build number query, and the product
+      # page / submission after the upload. bundler-cache keeps the gem install
+      # off the critical path on repeat runs, and installs exactly what
+      # Gemfile.lock names, checksums included, rather than resolving afresh.
+      #
+      # This runs before any credential reaches the runner, so gem install hooks
+      # never execute next to an unlocked keychain or the Connect key. The action
+      # is pinned to a commit rather than the moving v1 tag because what it
+      # installs (ruby, bundle) is what later steps run with those secrets.
+      # Bump the SHA and the version comment together.
+      - name: Set up Ruby and fastlane
+        uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
+        with:
+          # Pinned here rather than in a .ruby-version file: Ruby is a CI-only
+          # dependency of this repository, and setup-ruby refuses to guess.
+          ruby-version: "3.4"
+          bundler-cache: true
 
       - name: Import signing certificates
         env:
@@ -237,17 +255,6 @@ jobs:
 
       - name: Generate the Xcode project
         run: xcodegen generate
-
-      # fastlane owns the Connect side: the build number query here, and the
-      # product page / submission after the upload. bundler-cache keeps the gem
-      # install off the critical path on repeat runs.
-      - name: Set up Ruby and fastlane
-        uses: ruby/setup-ruby@v1
-        with:
-          # Pinned here rather than in a .ruby-version file: Ruby is a CI-only
-          # dependency of this repository, and setup-ruby refuses to guess.
-          ruby-version: "3.3"
-          bundler-cache: true
 
       - name: Decide the build number
         id: build_number
@@ -396,7 +403,7 @@ jobs:
 
       - name: Upload the .pkg as a run artifact
         if: ${{ inputs.dry_run }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: BrowBroMAS-pkg
           path: ${{ env.EXPORT_DIR }}/*.pkg
