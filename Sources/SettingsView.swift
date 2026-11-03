@@ -1,6 +1,9 @@
 import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
+import os
+
+private let settingsLog = Logger(subsystem: "cloud.tiagomoraes.browbro", category: "settings")
 
 /// BrowBro Settings: default-browser status with restore, Chrome-profile
 /// access, the picker catalog (reorder + show/hide), and behavior toggles.
@@ -8,9 +11,12 @@ struct SettingsView: View {
     @State private var catalog = TargetCatalog.shared
     #if SPARKLE
     @State private var updater = UpdaterController.shared
+    @State private var reminder = UpdateReminder.shared
     #endif
     @State private var isDefault = DefaultBrowser.isBrowBro
     @State private var chromeAccess = false
+    /// Why the last "Grant access…" didn't take, shown in the Chrome row.
+    @State private var chromeGrantError: String?
     @State private var working = false
 
     @AppStorage(Preferences.rememberLastKey) private var rememberLast = false
@@ -52,6 +58,10 @@ struct SettingsView: View {
         // owns the header (Settings.jsx draws its own), so claim the very top.
         .ignoresSafeArea(.container, edges: .top)
         .onAppear(perform: refresh)
+        // The window is reused: show() on an open window only brings it
+        // forward, and the user may come back from System Settings having
+        // changed the default browser or login items. Re-read on every focus.
+        .onWindowBecomesKey(perform: refresh)
     }
 
     /// The design's own window header: title beside the traffic lights, over a
@@ -69,15 +79,37 @@ struct SettingsView: View {
     }
 
     private func refresh() {
+        DefaultBrowser.capturePriorDefault()
         catalog.refresh()
+        catalogDidRefresh()
         isDefault = DefaultBrowser.isBrowBro
         chromeAccess = ChromeAccess.canReadLocalState()
         launchAtLogin = LoginItem.isEnabled
-        // Keep the "open plain clicks in" choice pointing at a real target:
-        // seed it on first run, and heal it if the saved browser vanished.
-        if catalog.all.first(where: { $0.id == defaultTargetID }) == nil {
-            defaultTargetID = catalog.visible.first?.id ?? catalog.all.first?.id ?? ""
+        settingsLog.debug("status refreshed: default=\(isDefault, privacy: .public) chrome=\(chromeAccess, privacy: .public) login=\(launchAtLogin, privacy: .public)")
+    }
+
+    /// Call after every `catalog.refresh()` in this view. Seeds "open plain
+    /// clicks in" on first run with the browser that was the default before
+    /// BrowBro when it's in the catalog — that's what a plain click opening
+    /// "your default browser" means. A saved choice that is only missing for
+    /// now (Private Windows off, Chrome unreadable) is never overwritten: the
+    /// picker falls back at use time, and the row below says which browser.
+    private func catalogDidRefresh() {
+        if defaultTargetID.isEmpty, let seed = catalog.plainClickTarget() {
+            defaultTargetID = seed.id
         }
+    }
+
+    /// What a plain click opens right now, fallbacks included.
+    private var plainClickTarget: LaunchTarget? {
+        TargetCatalog.resolvePlainClick(saved: defaultTargetID,
+                                        priorDefault: DefaultBrowser.capturedPriorDefault,
+                                        all: catalog.all, visible: catalog.visible)
+    }
+
+    /// A plain-click choice is saved but not discovered at the moment.
+    private var plainClickChoiceMissing: Bool {
+        !defaultTargetID.isEmpty && !catalog.all.contains { $0.id == defaultTargetID }
     }
 
     // MARK: Default browser
@@ -127,14 +159,16 @@ struct SettingsView: View {
         SettingsGroup(title: "Chrome profiles") {
             SettingsRow(
                 leading: {
-                    Image(systemName: chromeAccess ? "checkmark.shield" : "shield")
+                    Image(systemName: chromeGrantError != nil ? "exclamationmark.shield"
+                          : chromeAccess ? "checkmark.shield" : "shield")
                         .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(chromeAccess ? BB.success : BB.iconSecondary)
+                        .foregroundStyle(chromeGrantError != nil ? BB.warning
+                                         : chromeAccess ? BB.success : BB.iconSecondary)
                 },
                 label: chromeAccess ? "Access granted" : "Grant access to Chrome profiles",
-                description: chromeAccess
+                description: chromeGrantError ?? (chromeAccess
                     ? "BrowBro reads your Chrome profiles to route links per profile."
-                    : "BrowBro needs to read Chrome's data folder to list your profiles.",
+                    : "BrowBro needs to read Chrome's data folder to list your profiles."),
                 trailing: {
                     if chromeAccess {
                         Button("Re-grant…") { grantChrome() }
@@ -148,7 +182,16 @@ struct SettingsView: View {
     }
 
     private func grantChrome() {
-        _ = ChromeAccess.requestAccess()
+        switch ChromeAccess.requestAccess() {
+        case .granted:
+            chromeGrantError = nil
+        case .cancelled:
+            break
+        case .wrongFolder(let name):
+            chromeGrantError = "“\(name)” isn't Google Chrome's folder. Choose the one named “Chrome” in Application Support › Google."
+        case .unreadable:
+            chromeGrantError = "That's the right folder, but BrowBro still can't read Chrome's profile list."
+        }
         refresh()
     }
 
@@ -171,11 +214,16 @@ struct SettingsView: View {
                             target: target,
                             hidden: catalog.hidden.contains(target.id),
                             isLast: index == catalog.all.count - 1,
-                            onToggle: { catalog.toggleHidden(target.id) }
+                            onToggle: { catalog.toggleHidden(target.id) },
+                            onMove: { catalog.move(target.id, by: $0) }
                         )
                         .opacity(draggingID == target.id ? 0.4 : 1)
                         .onDrag {
                             draggingID = target.id
+                            // A drag that ends anywhere but on a row (outside
+                            // the list, Esc, another app) never reaches
+                            // performDrop; don't leave the row dimmed.
+                            DragEndWatcher.watch { draggingID = nil }
                             return NSItemProvider(object: target.id as NSString)
                         }
                         .onDrop(of: [.plainText],
@@ -203,7 +251,7 @@ struct SettingsView: View {
                 },
                 label: "Open links in private windows",
                 description: "Add picker entries that open a browser's incognito or private window.",
-                trailing: { BBSwitch(isOn: $privateWindowsEnabled) })
+                trailing: { BBSwitch(isOn: $privateWindowsEnabled, label: "Open links in private windows") })
             if privateWindowsEnabled {
                 ForEach(privateCapableBases) { base in
                     BBDivider().padding(.leading, 12)
@@ -216,7 +264,10 @@ struct SettingsView: View {
             }
         }
         .animation(BBMotion.easeOut(BBMotion.panel), value: privateWindowsEnabled)
-        .onChange(of: privateWindowsEnabled) { _, _ in catalog.refresh() }
+        .onChange(of: privateWindowsEnabled) { _, _ in
+            catalog.refresh()
+            catalogDidRefresh()
+        }
     }
 
     /// Base (non-variant) targets that can open a Private Window, in catalog order.
@@ -233,6 +284,7 @@ struct SettingsView: View {
         }
         Preferences.privateEnabledTargets = Array(enabled)
         catalog.refresh()
+        catalogDidRefresh()
     }
 
     // MARK: Behavior
@@ -241,8 +293,8 @@ struct SettingsView: View {
         SettingsGroup(title: "Behavior") {
             SettingsRow(
                 label: "Ask only when I hold a key",
-                description: "Plain clicks open your default browser. Hold \(triggerModifier.symbol) to pop the picker.",
-                trailing: { BBSwitch(isOn: $requireModifier) })
+                description: "Plain clicks open \(plainClickTarget?.name ?? "the browser you choose") right away. Hold \(triggerModifier.symbol) to pop the picker.",
+                trailing: { BBSwitch(isOn: $requireModifier, label: "Ask only when I hold a key") })
             if requireModifier {
                 BBDivider().padding(.leading, 12)
                 SettingsRow(
@@ -252,19 +304,21 @@ struct SettingsView: View {
                 BBDivider().padding(.leading, 12)
                 SettingsRow(
                     label: "Open plain clicks in",
-                    description: "The browser a link opens in when you don't hold \(triggerModifier.symbol).",
+                    description: plainClickChoiceMissing
+                        ? "Your pick isn't available right now, so plain clicks open \(plainClickTarget?.name ?? "another browser") until it's back."
+                        : "The browser a link opens in when you don't hold \(triggerModifier.symbol).",
                     trailing: { defaultTargetPicker })
             }
             BBDivider().padding(.leading, 12)
             SettingsRow(
                 label: "Remember last used",
                 description: "Pre-highlight whatever you picked last time.",
-                trailing: { BBSwitch(isOn: $rememberLast) })
+                trailing: { BBSwitch(isOn: $rememberLast, label: "Remember last used") })
             BBDivider().padding(.leading, 12)
             SettingsRow(
                 label: "Skip picker for a single target",
                 description: "If only one browser is shown, just open it.",
-                trailing: { BBSwitch(isOn: $skipSingle) })
+                trailing: { BBSwitch(isOn: $skipSingle, label: "Skip picker for a single target") })
             BBDivider().padding(.leading, 12)
             SettingsRow(
                 label: "Launch at login",
@@ -275,16 +329,21 @@ struct SettingsView: View {
                         set: { newValue in
                             try? LoginItem.set(enabled: newValue)
                             launchAtLogin = LoginItem.isEnabled
-                        }))
+                        }), label: "Launch at login")
                 })
         }
         .animation(BBMotion.easeOut(BBMotion.panel), value: requireModifier)
     }
 
     /// Native popup to choose which browser a plain click opens in (modifier
-    /// mode). Lists the whole catalog so a hidden target can still be the default.
+    /// mode). Lists the whole catalog so a hidden target can still be the default,
+    /// plus a placeholder for a saved choice that isn't discovered right now —
+    /// the selection must always have a tag, and the choice must survive.
     private var defaultTargetPicker: some View {
-        Picker("", selection: $defaultTargetID) {
+        Picker("Open plain clicks in", selection: $defaultTargetID) {
+            if plainClickChoiceMissing {
+                Text("Unavailable right now").tag(defaultTargetID)
+            }
             ForEach(catalog.all) { target in
                 Text(target.name).tag(target.id)
             }
@@ -306,10 +365,10 @@ struct SettingsView: View {
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(BB.iconSecondary)
                 },
-                label: "Check for updates",
+                label: reminder.pendingVersion.map { "BrowBro \($0) is available" } ?? "Check for updates",
                 description: "BrowBro installs updates in place — no reinstall, no drag to Applications.",
                 trailing: {
-                    Button("Check Now") { updater.checkForUpdates() }
+                    Button(reminder.pendingVersion == nil ? "Check Now" : "Review…") { updater.checkForUpdates() }
                         .buttonStyle(BBButtonStyle(variant: .secondary, size: .sm))
                         .disabled(!updater.canCheckForUpdates)
                 })
@@ -320,7 +379,8 @@ struct SettingsView: View {
                 trailing: {
                     BBSwitch(isOn: Binding(
                         get: { updater.automaticallyChecksForUpdates },
-                        set: { updater.automaticallyChecksForUpdates = $0 }))
+                        set: { updater.automaticallyChecksForUpdates = $0 }),
+                             label: "Automatically check for updates")
                 })
         }
     }
@@ -353,7 +413,8 @@ struct SettingsView: View {
 
     /// The ask, kept quiet and last: three link rows, System-Settings style.
     /// The free option is a first-class row on purpose — no tiers, no minimums.
-    /// The Mac App Store build omits the payment links (guideline 3.1.1).
+    /// The Mac App Store build omits the payment links (guideline 3.1.1), so its
+    /// one row can't be described relative to them.
     private var supportGroup: some View {
         #if APPSTORE
         SettingsGroup(title: "Support the project") {
@@ -361,7 +422,7 @@ struct SettingsView: View {
                 symbol: "star.fill",
                 tile: Color(red: 0xEC / 255, green: 0x9A / 255, blue: 0x00 / 255),
                 label: "Star the repo",
-                description: "Free — and it helps just as much.",
+                description: "Free — and it helps more people find BrowBro.",
                 url: BBLinks.repo)
         }
         #else
@@ -519,25 +580,36 @@ private struct CatalogRow: View {
     let hidden: Bool
     let isLast: Bool
     let onToggle: () -> Void
+    /// Reorder by one slot (-1 up, +1 down): dragging has no VoiceOver or
+    /// keyboard equivalent, so the row offers these as accessibility actions.
+    let onMove: (Int) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                GripDots()
-                leading
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(target.name)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(BB.textPrimary)
-                        .lineLimit(1)
-                    Text(subtitle)
-                        .font(BBFont.caption)
-                        .foregroundStyle(BB.textSecondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                HStack(spacing: 8) {
+                    GripDots()
+                    leading
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(target.name)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(BB.textPrimary)
+                            .lineLimit(1)
+                        Text(subtitle)
+                            .font(BBFont.caption)
+                            .foregroundStyle(BB.textSecondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(target.name), \(subtitle)")
+                .accessibilityValue(hidden ? "Hidden" : "Shown")
+                .accessibilityAction(named: "Move up") { onMove(-1) }
+                .accessibilityAction(named: "Move down") { onMove(1) }
                 Spacer(minLength: 8)
-                BBSwitch(isOn: Binding(get: { !hidden }, set: { _ in onToggle() }))
+                BBSwitch(isOn: Binding(get: { !hidden }, set: { _ in onToggle() }),
+                         label: "Show \(target.name) in the picker")
             }
             .padding(EdgeInsets(top: 8, leading: 6, bottom: 8, trailing: 10))
             .opacity(hidden ? 0.55 : 1)
@@ -603,7 +675,8 @@ private struct PrivateOptInRow: View {
                     .truncationMode(.tail)
             }
             Spacer(minLength: 8)
-            BBSwitch(isOn: Binding(get: { enabled }, set: { _ in onToggle() }))
+            BBSwitch(isOn: Binding(get: { enabled }, set: { _ in onToggle() }),
+                     label: "Add \(base.name) \(dialect) to the picker")
         }
         .padding(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 10))
     }
@@ -634,9 +707,10 @@ private struct GripDots: View {
     }
 }
 
-// MARK: - Modifier segmented control (⌘ ⌥ ⌃ ⇧)
+// MARK: - Modifier segmented control (⌘ ⌥ ⇧)
 // The trigger-key chooser for "ask only when I hold a key". Styled from the
 // tokens so the on-state reads as BrowBro Blue, not the system accent.
+// No ⌃: Control-click is a secondary click, so the link never arrives.
 
 private struct ModifierPicker: View {
     @Binding var selection: TriggerModifier
@@ -663,10 +737,16 @@ private struct ModifierPicker: View {
                         }
                 }
                 .buttonStyle(.plain)
+                // The glyph alone reads as a symbol name, and the selected
+                // segment is only told apart by color.
+                .accessibilityLabel(mod.name)
+                .accessibilityAddTraits(on ? .isSelected : [])
                 .cursor(.pointingHand)
                 .help(mod.name)
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Trigger key")
         .animation(BBMotion.easeOut(BBMotion.instant), value: selection)
     }
 }
@@ -763,11 +843,41 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 }
 
+/// Ends a catalog drag that never reaches `performDrop` — released outside the
+/// list or over another app, or cancelled with Esc. SwiftUI reports none of
+/// those, so this watches the hardware instead: once the primary button is up,
+/// the drag is over, whatever happened to it.
+@MainActor
+private enum DragEndWatcher {
+    private static var task: Task<Void, Never>?
+
+    static func watch(onEnd: @escaping @MainActor () -> Void) {
+        task?.cancel()
+        task = Task { @MainActor in
+            while NSEvent.pressedMouseButtons & 1 != 0 {
+                try? await Task.sleep(for: .milliseconds(100))
+                if Task.isCancelled { return }
+            }
+            onEnd()
+        }
+    }
+}
+
 /// Live reorder while dragging over rows.
 private struct CatalogDropDelegate: DropDelegate {
     let targetID: String
     @Binding var draggingID: String?
     let catalog: TargetCatalog
+
+    /// Only reorders that started in this list: a drag of ours carries one of
+    /// the catalog's target ids and has set `draggingID` (cleared when it ends).
+    /// Text dragged in from anywhere else has neither.
+    func validateDrop(info: DropInfo) -> Bool {
+        guard let draggingID, info.hasItemsConforming(to: [.plainText]) else { return false }
+        return MainActor.assumeIsolated {
+            catalog.all.contains { $0.id == draggingID }
+        }
+    }
 
     func dropEntered(info: DropInfo) {
         guard let draggingID, draggingID != targetID else { return }

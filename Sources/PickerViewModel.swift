@@ -62,13 +62,16 @@ final class PickerViewModel {
         default:
             break
         }
-        guard !event.modifierFlags.contains(.command),
-              let chars = event.charactersIgnoringModifiers?.lowercased(), chars.count == 1
-        else { return false }
-        if let n = Int(chars), (1...9).contains(n) {   // digit = open that target
+        // Digits go by physical key and come before the ⌘ guard: the trigger
+        // key (⌘ or ⇧) is often still held when the picker appears, ⇧1 types
+        // "!", and AZERTY's unshifted top row types "&é\"'(…", not digits.
+        if let n = Self.digit(forKeyCode: event.keyCode) {   // digit = open that target
             commit(at: n - 1)
             return true
         }
+        guard !event.modifierFlags.contains(.command),
+              let chars = event.charactersIgnoringModifiers?.lowercased(), chars.count == 1
+        else { return false }
         if chars.first?.isLetter == true {             // first-letter jump
             if let hit = targets.firstIndex(where: { $0.name.lowercased().hasPrefix(chars) }) {
                 select(hit)
@@ -76,5 +79,23 @@ final class PickerViewModel {
             return true
         }
         return false
+    }
+
+    /// Quick-key digit 1–9 for a virtual key code, whatever the layout or
+    /// modifiers: the number row (kVK_ANSI_1…9) and the keypad (kVK_ANSI_Keypad1…9).
+    /// 0 is not a quick key.
+    nonisolated static func digit(forKeyCode keyCode: UInt16) -> Int? {
+        switch keyCode {
+        case 18, 83: 1
+        case 19, 84: 2
+        case 20, 85: 3
+        case 21, 86: 4
+        case 23, 87: 5
+        case 22, 88: 6
+        case 26, 89: 7
+        case 28, 91: 8
+        case 25, 92: 9
+        default: nil
+        }
     }
 }

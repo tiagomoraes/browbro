@@ -21,6 +21,10 @@ enum ChromeProfiles {
     }
 
     static func load() -> [ChromeProfile] {
+        // AppDelegate restores the sandbox bookmark in willFinishLaunching; this
+        // is the backstop for any read that could still come first (a no-op once
+        // a scope is live, or outside the sandbox).
+        ChromeAccess.restorePersistedAccess()
         guard
             let data = try? Data(contentsOf: localStateURL),
             let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],

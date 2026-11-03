@@ -1,5 +1,8 @@
 import SwiftUI
 import AppKit
+import os
+
+private let menuLog = Logger(subsystem: "cloud.tiagomoraes.browbro", category: "menu")
 
 /// The dropdown shown when the BrowBro menu-bar glyph is clicked.
 /// One job per zone, native macOS menu feel:
@@ -10,6 +13,9 @@ import AppKit
 ///   4. app actions as plain menu items with muted shortcut hints
 struct MenuDropdownView: View {
     @Environment(LinkStore.self) private var store
+    #if SPARKLE
+    @State private var reminder = UpdateReminder.shared
+    #endif
     @State private var isDefault = false
     @State private var working = false
 
@@ -46,13 +52,18 @@ struct MenuDropdownView: View {
                     .foregroundStyle(BB.textTertiary)
                     .padding(EdgeInsets(top: 3, leading: 10, bottom: 8, trailing: 10))
             } else {
-                ForEach(store.recents.prefix(3)) { recent in
-                    MenuRow(
-                        title: displayURL(recent.url),
-                        subtitle: "\(timeAgo(recent.at)) · opened in \(recent.targetName)",
-                        mono: true
-                    ) {
-                        reopen(recent.url)
+                // "just now" has to become "40s ago" while the menu is open.
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    VStack(spacing: 0) {
+                        ForEach(store.recents.prefix(3)) { recent in
+                            MenuRow(
+                                title: displayURL(recent.url),
+                                subtitle: "\(timeAgo(recent.at, now: context.date)) · opened in \(recent.targetName)",
+                                mono: true
+                            ) {
+                                reopen(recent.url)
+                            }
+                        }
                     }
                 }
             }
@@ -66,13 +77,26 @@ struct MenuDropdownView: View {
             }
 
             #if SPARKLE
-            MenuRow(title: "Check for Updates…") {
-                closeMenuWindow()
-                UpdaterController.shared.checkForUpdates()
+            // A scheduled check found an update while BrowBro was in the
+            // background (gentle reminder): this row, and the dot on the glyph,
+            // stand in for an alert that would have opened behind other apps.
+            // Same action either way — it brings Sparkle's window forward.
+            if let version = reminder.pendingVersion {
+                MenuRow(title: "Update available",
+                        subtitle: "BrowBro \(version) — see what's new",
+                        badge: true) {
+                    closeMenuWindow()
+                    UpdaterController.shared.checkForUpdates()
+                }
+            } else {
+                MenuRow(title: "Check for Updates…") {
+                    closeMenuWindow()
+                    UpdaterController.shared.checkForUpdates()
+                }
             }
             #endif
 
-            MenuRow(title: "Support BrowBro", shortcut: "♥") {
+            MenuRow(title: BBLinks.supportMenuTitle.title, shortcut: BBLinks.supportMenuTitle.glyph) {
                 closeMenuWindow()
                 // Self-initiated opens route back through BrowBro without a
                 // fresh willBecomeActive; snapshot the z-order here instead.
@@ -88,7 +112,16 @@ struct MenuDropdownView: View {
         }
         .padding(4)
         .frame(width: 280)
-        .onAppear { isDefault = DefaultBrowser.isBrowBro }
+        .onAppear(perform: refresh)
+        // The dropdown's window is hidden between clicks, not destroyed, so
+        // onAppear runs once; re-read status every time it's shown.
+        .onWindowBecomesKey(perform: refresh)
+    }
+
+    private func refresh() {
+        DefaultBrowser.capturePriorDefault()
+        isDefault = DefaultBrowser.isBrowBro
+        menuLog.debug("status refreshed: default=\(isDefault, privacy: .public)")
     }
 
     private func setDefault() async {
@@ -98,10 +131,12 @@ struct MenuDropdownView: View {
         isDefault = DefaultBrowser.isBrowBro
     }
 
-    /// Clicking a recent link re-routes it: the picker pops right back up.
+    /// Clicking a recent link re-routes it: the picker pops right back up —
+    /// forced, because in hold-a-key mode nobody is holding the key here and
+    /// the link would just reopen in the plain-click browser.
     private func reopen(_ url: URL) {
         closeMenuWindow()
-        PickerController.shared.present(for: url)
+        PickerController.shared.present(for: url, forcePicker: true)
     }
 
     /// The MenuBarExtra window doesn't auto-close on custom actions.
@@ -118,8 +153,8 @@ struct MenuDropdownView: View {
         return s
     }
 
-    private func timeAgo(_ date: Date) -> String {
-        let s = max(0, Int(Date().timeIntervalSince(date)))
+    private func timeAgo(_ date: Date, now: Date) -> String {
+        let s = max(0, Int(now.timeIntervalSince(date)))
         if s < 8 { return "just now" }
         if s < 60 { return "\(s)s ago" }
         let m = s / 60
@@ -137,12 +172,20 @@ private struct MenuRow: View {
     var subtitle: String? = nil
     var mono = false
     var shortcut: String? = nil
+    /// A leading accent dot: this row is news (an update is waiting).
+    var badge = false
     let action: () -> Void
     @State private var hovered = false
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
+                if badge {
+                    Circle()
+                        .fill(hovered ? BB.onAccent : BB.accent)
+                        .frame(width: 7, height: 7)
+                        .accessibilityHidden(true)
+                }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(mono ? BBFont.url : .system(size: 13))

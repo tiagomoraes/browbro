@@ -17,7 +17,7 @@ struct BrowBroApp: App {
             MenuDropdownView()
                 .environment(store)
         } label: {
-            Image(nsImage: BBBrand.menuBarIcon())
+            MenuBarGlyph()
         }
         .menuBarExtraStyle(.window)
         .commands {
@@ -32,5 +32,23 @@ struct BrowBroApp: App {
                 .keyboardShortcut(",", modifiers: .command)
             }
         }
+    }
+}
+
+/// The status item's glyph. In the Sparkle build it wears a dot while a
+/// scheduled update waits for the user (gentle reminders, see `Updater.swift`).
+private struct MenuBarGlyph: View {
+    #if SPARKLE
+    @State private var reminder = UpdateReminder.shared
+    #endif
+
+    var body: some View {
+        #if SPARKLE
+        Image(nsImage: BBBrand.menuBarIcon(badged: reminder.pendingVersion != nil))
+            .accessibilityLabel(reminder.pendingVersion != nil ? "BrowBro, update available" : "BrowBro")
+        #else
+        Image(nsImage: BBBrand.menuBarIcon())
+            .accessibilityLabel("BrowBro")
+        #endif
     }
 }
