@@ -13,7 +13,7 @@ is the rulebook.
 | Sparkle | linked (`-D SPARKLE`) | **not linked** (`-D APPSTORE`) |
 | Sandbox | off | on (`packaging/mas/BrowBro.entitlements`) |
 | Chrome folder | TCC + real-home path | NSOpenPanel + security-scoped bookmark |
-| Flagged launches (profile / private window) | `Process()` of the browser binary (ADR-0001) | `NSWorkspace.openApplication` with `OpenConfiguration.arguments` |
+| Flagged launches (profile / private window) | `Process()` of the browser binary (ADR-0001) | user-installed launch helper run by `NSUserUnixTask` (`Sources/LaunchHelper.swift`) |
 | Updates UI | Settings + menu item | omitted — the store updates the app |
 | Ko-fi / Sponsors | Settings | omitted (guideline 3.1.1) |
 | Info.plist | `Resources/Info.plist` | `Resources/Info-MAS.plist` (no `SUFeedURL`) |
@@ -38,8 +38,9 @@ Prove the three sandbox-sensitive paths before submitting:
    `~/Library/Application Support/Google/Chrome`. Quit and relaunch: the grant
    must survive (bookmark). Profiles should appear in the picker.
 3. **Profile / private window** — pick a Chrome profile and a Private Window
-   variant. The flags have to arrive; a sandbox-blocked `Process()` used to fail
-   silently here.
+   variant. The first pick asks to save the launch helper; after Install the link
+   must open in that profile / an incognito window. Without the helper the flags
+   never arrive (see below), and Chrome shows its profile chooser instead.
 
 `/usr/bin/log show --last 5m --info --predicate 'subsystem == "cloud.tiagomoraes.browbro"'`
 logs picker decisions and `category == "launch"` workspace launches.
@@ -284,5 +285,67 @@ never seen one. Common bounce-backs:
 
 - Sparkle / `SUFeedURL` still in the bundle → this target is built so that can't happen.
 - Chrome profiles empty because they skipped Grant access… → spell out the panel in the notes.
-- Profile / incognito opens the wrong window → that's the `NSWorkspace` flags path; verify it locally first.
+- Profile / incognito opens the wrong window → it did in 1.0 (9); fixed by the launch helper. See below.
 - Ko-fi / Sponsors in the binary → omitted from `BrowBroMAS`.
+
+### Guideline 2.1, and the demo recording
+
+1.0 (9) came back on 2026-09-14 as **Guideline 2.1 — Information Needed — New App
+Submission**, the questionnaire Apple sends a developer account with little review
+history. Nothing was wrong with the build: it asks for a screen recording plus six
+written answers (purpose and audience, set-up instructions, external services,
+regional differences, regulated industry / third-party material), *and* asks that the
+same answers go into the version's Notes field. That is why `listing.md`'s **App
+Review notes** block now answers all of it — a reply is a one-off, the Notes field
+ships with every submission.
+
+The recording is made with `packaging/mas/demo/`: `setup.sh` stages the Mac, the take
+follows the shot list in its README, `build-video.sh` compresses it, `teardown.sh` puts
+everything back. The 2026-11-02 take was driven by script rather than by hand — short
+ffmpeg segments, one per step, with the clicks placed from the accessibility tree — and
+cut together; the README notes what that needs. The staging exists because a
+maintainer's Mac is a bad film set:
+
+- every other **BrowBro copy on the disk** (the 0.1.7 DMG build, dev builds, archives)
+  registers as an http handler under `so.aca.browbro`, so the picker lists a target
+  called "BrowBro" — on video that reads as a bug. So does anything else that claims
+  http (ChatGPT, T3 Code, Playwright's Chrome for Testing). Every handler that is not a
+  known browser is unregistered from LaunchServices for the take and re-registered
+  afterwards. LaunchServices re-registers some of them within a second, so `setup.sh`
+  repeats the pass until the list holds still.
+- the **sandbox container is stashed**, so the take shows the true first run.
+- the default browser must be something other than BrowBro before the take, or
+  onboarding says "Currently: BrowBro".
+
+`LSSetDefaultHandlerForURLScheme` is a no-op on macOS 27 — the default browser can
+only be changed through `NSWorkspace.setDefaultApplication`, which always raises the
+system confirmation panel. Restoring it afterwards therefore needs a click, and
+`teardown.sh` says so rather than pretending it did it.
+
+### Chrome profiles and Private windows need the launch helper
+
+Found while recording, 2026-11-02: in 1.0 (9), picking a Chrome profile row opened
+Chrome's "Who's using Chrome?" window, and a Private row opened a normal window. The
+flags never arrived. The store build launched through
+`NSWorkspace.OpenConfiguration.arguments`, and the SDK is explicit (`NSWorkspace.h`):
+*"If the calling process is sandboxed, the value of this property is ignored."* The
+same `open -n -a "Google Chrome" --args --profile-directory=Default <url>` works from a
+shell, so this is the sandbox, not Chrome.
+
+1.0 (10) routes flagged launches through `Sources/LaunchHelper.swift`: a short shell
+script that runs `/usr/bin/open -n -a <browser> --args <flags> <url>`, which the *user*
+saves into `~/Library/Application Scripts/cloud.tiagomoraes.browbro` through a save panel,
+and which BrowBro runs with `NSUserUnixTask` — the one sanctioned way for a sandboxed app
+to run something outside its sandbox (`NSUserScriptTask.h`). The app can read that
+folder but not write it, hence the save panel, and hence `user-selected.read-write`
+instead of read-only.
+
+- The panel appears the first time a profile or private row is picked, and from
+  Settings → Launch helper. Declining still delivers the link, in the browser's normal
+  window.
+- `LaunchHelper.version` is part of the script; bump it with any change to the script
+  and older copies read as not installed, so the panel comes back.
+- The review notes explain all of this up front. Guideline 2.5.2 forbids executing code
+  that adds functionality; the defence is that the script ships in the reviewed binary,
+  the user installs it explicitly, and it only calls `open`. If review pushes back, the
+  fallback is hiding the two features under `#if APPSTORE`.
