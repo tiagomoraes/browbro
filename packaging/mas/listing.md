@@ -4,7 +4,7 @@ All listing copy, screenshots, and review notes are **English (U.S.)** only.
 Bundle ID `cloud.tiagomoraes.browbro` · SKU `browbro` · Category **Utilities** (secondary: Productivity).
 Price: **Free**. Availability: all territories.
 
-Privacy policy: `https://browbro.tiagomoraes.cloud/privacy`
+Privacy policy: `https://browbro.tiagomoraes.cloud/privacy/`
 Support URL: `https://browbro.tiagomoraes.cloud`
 Marketing URL: `https://browbro.tiagomoraes.cloud`
 Copyright: `2026 Tiago Moraes`

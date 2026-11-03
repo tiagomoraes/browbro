@@ -45,11 +45,23 @@ packaging/notarize/notarize-release.sh build/BrowBro.dmg
 ```
 
 That's the whole command — the Developer ID is auto-detected from the keychain and
-the notary profile defaults to `browbro-notary`. The script builds a universal,
-hardened-runtime app, signs Sparkle's nested helpers inside-out, signs the app, wraps
-it in the styled DMG (`packaging/dmg/`), signs the disk image, submits it to Apple,
-waits, staples the ticket, and then **refuses to succeed** unless Gatekeeper accepts
-both the DMG and the app inside it. If it prints `✅`, the download is clean.
+the notary profile defaults to `browbro-notary`. In order, the script:
+
+1. Builds a universal (arm64 + x86_64), hardened-runtime Release of the `BrowBro`
+   scheme, signed with the Developer ID.
+2. Re-signs Sparkle's nested helpers inside-out, then the app (with
+   `packaging/notarize/BrowBro.entitlements`), and verifies the signature.
+3. **Notarizes the app on its own**: zips it, submits the zip, and staples the ticket
+   onto the `.app`. The DMG's ticket doesn't travel with the app that comes out of
+   it, so this is what lets the copy dragged to `/Applications` — and the copy
+   Sparkle extracts on an in-place update — verify offline.
+4. Wraps the stapled app in the styled DMG (`packaging/dmg/`) and signs the disk image.
+5. Notarizes the DMG and staples its ticket.
+6. **Refuses to succeed** unless Gatekeeper accepts both the DMG and the app mounted
+   from it, and the app's stapled ticket validates.
+
+Each submission waits for Apple's verdict, staples only on `status: Accepted`, and
+prints the notary log when it isn't. If it prints `✅`, the download is clean.
 
 To check an already-built DMG by hand:
 
@@ -66,16 +78,22 @@ spctl -a -t open --context context:primary-signature -vv build/BrowBro.dmg
 
 ## Release it
 
-1. Bump `MARKETING_VERSION` **and** `CURRENT_PROJECT_VERSION` in `project.yml`
-   (the build number must strictly increase for Sparkle — see
+1. Bump `MARKETING_VERSION` **and** `CURRENT_PROJECT_VERSION` at the top of
+   `project.yml` (the build number must strictly increase for Sparkle — see
    [UPDATES.md](UPDATES.md)), and update `CHANGELOG.md`.
-2. Cut `release/x.y.z`, PR into `main`, tag `vX.Y.Z` (see CONTRIBUTING.md).
-3. Upload the notarized **`BrowBro.dmg`** as the release asset (keep the exact
-   name so `releases/latest/download/BrowBro.dmg` and the website keep working).
+2. Cut `release/x.y.z` (or PR `develop` straight into `main`) and tag `vX.Y.Z` —
+   the order of tag, release and merges is in
+   [CONTRIBUTING.md](../CONTRIBUTING.md#dmg-channel).
+3. Upload the notarized **`BrowBro.dmg`** to the `vX.Y.Z` GitHub Release (keep the
+   exact name so `releases/latest/download/BrowBro.dmg` and the website keep
+   working). Publishing it ships this channel only; the Mac App Store goes out from
+   its own `mas-v…` tag (see [MAS.md](MAS.md)).
 4. Publish the Sparkle update feed so existing installs can self-update: run
    `packaging/appcast/generate-item.sh build/BrowBro.dmg`, paste the printed
    `<item>` at the top of the `<channel>` in `site/appcast.xml`, and merge it to
-   `main` (Pages redeploys the feed). Full walkthrough in [UPDATES.md](UPDATES.md).
+   `main` (Pages redeploys the feed). The script refuses a DMG that isn't notarized
+   and stapled, or whose app doesn't carry `project.yml`'s versions, so feed it this
+   script's output. Full walkthrough in [UPDATES.md](UPDATES.md).
 5. Update the cask in the [homebrew-browbro tap](https://github.com/tiagomoraes/homebrew-browbro):
    bump `version` and `sha256`.
 6. Submitting the cask to homebrew-cask core (so the bare `brew install --cask browbro`
@@ -93,6 +111,7 @@ spctl -a -t open --context context:primary-signature -vv build/BrowBro.dmg
   (how BrowBro discovers Chrome profiles). One prompt, once.
 - If a future feature scripts another app or needs a hardened-runtime exception,
   add the entitlement to `packaging/notarize/BrowBro.entitlements`.
-- `packaging/dmg/build-dmg.sh` builds an unsigned-to-the-world DMG for quick local
-  previews. **Never ship its output** — it's the path that produced the blocked
-  v0.1.6 download.
+- `packaging/dmg/build-dmg.sh` builds an Apple Development–signed, un-notarized DMG
+  for quick local previews, written to `build/BrowBro-preview.dmg`. **Never ship its
+  output** — it's the path that produced the blocked v0.1.6 download — and
+  `generate-item.sh` refuses it.

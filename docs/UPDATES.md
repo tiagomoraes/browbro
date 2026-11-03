@@ -47,11 +47,14 @@ Sparkle decides "is this newer?" by comparing **`CFBundleVersion`**
 every public release, or clients won't see the update.
 
 1. Bump both `MARKETING_VERSION` (e.g. `0.1.5`) and `CURRENT_PROJECT_VERSION`
-   (e.g. `5`) in `project.yml`, and move the `CHANGELOG.md` entries under a new
-   heading. (Follow the normal release flow in [CONTRIBUTING.md](../CONTRIBUTING.md).)
+   (e.g. `5`) at the top of `project.yml` — `BrowBroMAS` carries its own pair — and
+   move the `CHANGELOG.md` entries under a new heading. (Follow the normal release
+   flow in [CONTRIBUTING.md](../CONTRIBUTING.md).)
 2. Build the release DMG with `packaging/notarize/notarize-release.sh build/BrowBro.dmg`
    — signed, notarized and stapled (see [NOTARIZING.md](NOTARIZING.md)). Never ship
-   `packaging/dmg/build-dmg.sh` output; that one is for local previews only.
+   `packaging/dmg/build-dmg.sh` output: it's an Apple Development–signed, un-notarized
+   local preview, written to `build/BrowBro-preview.dmg` so it can't be mistaken for
+   the release file.
 3. Generate the appcast `<item>` and paste it at the top of the `<channel>` in
    `site/appcast.xml`:
    ```sh
@@ -59,15 +62,23 @@ every public release, or clients won't see the update.
    ```
    The script signs the DMG with the keychain private key and prints a ready
    `<item>` (version, download URL, size, EdDSA signature, release notes from
-   `CHANGELOG.md`).
+   `CHANGELOG.md`). It refuses a DMG that isn't notarized and stapled, reads the
+   version and build from the app inside the DMG (they must match `project.yml`),
+   takes `minimumSystemVersion` from `project.yml`, and rewrites relative
+   `CHANGELOG.md` links to absolute GitHub URLs so they resolve outside the repo.
 4. Create the GitHub release `vX.Y.Z` and upload the DMG as **`BrowBro.dmg`**
-   (the exact name the appcast URL and the website expect).
+   (the exact name the appcast URL and the website expect). Do it before step 5:
+   the feed points at this asset. Publishing the release does not touch the Mac
+   App Store — that channel ships from its own `mas-v…` tag (see [MAS.md](MAS.md)).
 5. Merge `site/appcast.xml` to `main` so GitHub Pages publishes the new feed.
 6. Bump the Homebrew cask (see [NOTARIZING.md](NOTARIZING.md) → "Release it").
 
 Existing installs then pick up the update on their next scheduled check (or when
 the user hits **Check Now**).
 
-> Sparkle updates only work for builds that already contain Sparkle, i.e. `0.1.4`
-> and later. Users on `0.1.3` or earlier must install `0.1.4+` manually once;
-> after that, updates are automatic.
+> Sparkle only updates a build that already contains Sparkle *and* has the same
+> bundle ID. `0.1.3` and earlier have no Sparkle; `0.1.4`–`0.1.7` do, but they are
+> `so.aca.browbro`, and Sparkle won't move them to `cloud.tiagomoraes.browbro`. So
+> every 0.1.x user installs the first `cloud.tiagomoraes.browbro` release by hand
+> once — a fresh DMG, or `brew reinstall --cask browbro` — and updates are
+> automatic from there.
