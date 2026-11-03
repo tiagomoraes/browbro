@@ -11,6 +11,9 @@ struct SettingsView: View {
     #endif
     @State private var isDefault = DefaultBrowser.isBrowBro
     @State private var chromeAccess = false
+    #if APPSTORE
+    @State private var helperInstalled = false
+    #endif
     @State private var working = false
 
     @AppStorage(Preferences.rememberLastKey) private var rememberLast = false
@@ -33,6 +36,11 @@ struct SettingsView: View {
                     if ChromeAccess.isChromeInstalled {
                         chromeGroup
                     }
+                    #if APPSTORE
+                    if chromeAccess || privateWindowsEnabled {
+                        launchHelperGroup
+                    }
+                    #endif
                     catalogGroup
                     privateWindowsGroup
                     behaviorGroup
@@ -72,6 +80,9 @@ struct SettingsView: View {
         catalog.refresh()
         isDefault = DefaultBrowser.isBrowBro
         chromeAccess = ChromeAccess.canReadLocalState()
+        #if APPSTORE
+        helperInstalled = LaunchHelper.isInstalled
+        #endif
         launchAtLogin = LoginItem.isEnabled
         // Keep the "open plain clicks in" choice pointing at a real target:
         // seed it on first run, and heal it if the saved browser vanished.
@@ -151,6 +162,41 @@ struct SettingsView: View {
         _ = ChromeAccess.requestAccess()
         refresh()
     }
+
+    #if APPSTORE
+    // MARK: Launch helper
+
+    /// Profile and private rows pass a flag to the browser, which the sandbox
+    /// can't do on its own (see LaunchHelper). Shown once either feature is in use.
+    private var launchHelperGroup: some View {
+        SettingsGroup(title: "Launch helper") {
+            SettingsRow(
+                leading: {
+                    Image(systemName: helperInstalled ? "checkmark.seal" : "terminal")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(helperInstalled ? BB.success : BB.iconSecondary)
+                },
+                label: helperInstalled ? "Launch helper installed" : "Install the launch helper",
+                description: helperInstalled
+                    ? "Chrome profile and private-window rows open the right window."
+                    : "Chrome profile and private-window rows need a small script you save once.",
+                trailing: {
+                    if helperInstalled {
+                        Button("Reinstall…") { installHelper() }
+                            .buttonStyle(BBButtonStyle(variant: .ghost, size: .sm))
+                    } else {
+                        Button("Install…") { installHelper() }
+                            .buttonStyle(BBButtonStyle(variant: .primary, size: .sm))
+                    }
+                })
+        }
+    }
+
+    private func installHelper() {
+        LaunchHelper.install()
+        refresh()
+    }
+    #endif
 
     // MARK: Shown in the picker
 

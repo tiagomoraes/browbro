@@ -18,9 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Mac App Store channel.** A second target, `BrowBroMAS`, builds the sandboxed,
   Sparkle-free binary the store requires (guideline 2.4.5). Chrome profile access
-  persists via a security-scoped bookmark; profile / private-window launches go
-  through `NSWorkspace` instead of `Process()`. Direct DMG + Homebrew + Sparkle
-  builds are unchanged. See [docs/MAS.md](docs/MAS.md).
+  persists via a security-scoped bookmark. The sandbox drops launch arguments, so
+  Chrome-profile and private-window launches go through a small launch helper the
+  user saves once (Settings → Launch helper, or the first time such a row is
+  picked), run with `NSUserUnixTask`. Direct DMG + Homebrew + Sparkle builds are
+  unchanged. See [docs/MAS.md](docs/MAS.md).
 
 ## [0.1.7] - 2026-08-27
 

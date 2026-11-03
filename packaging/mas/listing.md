@@ -74,29 +74,50 @@ First release on the Mac App Store. Native menu-bar browser picker for macOS 14+
 
 ## App Review notes
 
-Paste into the “Notes” field of the version. Reviewers often have not seen a browser *picker*.
+Paste into the “Notes” field of the version. Reviewers often have not seen a browser
+*picker* — and App Review asked for all of this in writing under Guideline 2.1 on
+2026-09-14, so the answers live here rather than in a one-off reply (see docs/MAS.md).
 
 ```
-BrowBro is not a web browser and does not render pages. It registers as the default http(s) handler (CFBundleURLTypes) and forwards each URL to a browser the user already has installed.
+BrowBro is not a web browser: it has no web engine and renders no web content. It registers as the default http(s) handler and forwards each URL to a browser the user already has installed.
 
-HOW TO TEST
+PURPOSE AND AUDIENCE
 
-1. Open BrowBro from the menu bar (unibrow glyph) → Settings.
-2. Click “Set as default”. Confirm the system prompt.
-3. Click a link in Notes or Mail, or run:
-   open -a BrowBro "https://example.com"
-   A picker should appear at the cursor. Esc cancels; Enter / click opens the highlighted browser.
-4. Chrome profiles (optional): Settings → Chrome profiles → Grant access… and select
-   ~/Library/Application Support/Google/Chrome
-   (the folder that contains “Local State”). Profiles then appear in the picker.
-5. Private windows: Settings → Private windows → enable, then opt in a browser. The extra picker rows launch that browser’s incognito/private flag.
+macOS allows one default browser, so every link clicked in Mail, Messages or a chat app opens in that browser — and anyone who keeps work and personal life in different browsers or Chrome profiles has to copy the URL into the right window. BrowBro shows a picker at the pointer the moment a link is clicked, listing the browsers and Chrome profiles on that Mac; one keystroke sends the link where it belongs. For Mac users with more than one browser or profile: developers, designers, consultants working across accounts.
 
-The app is an LSUIElement menu-bar accessory — no Dock icon. If it looks like nothing launched, look in the menu bar.
+HOW TO TEST — no account, no credentials, no sample files
 
-It does not include Sparkle or any custom updater. Updates are App Store only.
-It does not include donation / tip links.
+1. Launch BrowBro. It is a menu-bar accessory (LSUIElement): no Dock icon, no main window — look for the unibrow glyph in the menu bar.
+2. The first run offers “Set BrowBro as default browser”; accept the macOS confirmation. Settings > Default browser > “Restore previous” hands it back.
+3. Click a link in Notes, Mail or TextEdit, or run: open "https://example.com"
+   The picker appears at the pointer. Pick with 1–9, arrows + Return, or the mouse; Esc cancels.
+4. Chrome profiles (optional): Settings > Chrome profiles > “Grant access…”, select ~/Library/Application Support/Google/Chrome. Profiles appear as picker rows.
+5. The first time a profile row (or a private row, step 6) is picked, BrowBro asks to save its launch helper (below). Click Install; the link opens in that profile.
+6. Private windows (optional): Settings > Private windows > on, then opt a browser in. The extra rows open its incognito / private window.
 
-Sandbox: user-selected read-only access to the Chrome folder the user picks, persisted as an app-scoped bookmark. No Full Disk Access, no temporary exception entitlements.
+LAUNCH HELPER
+
+A profile or private window needs a flag (--profile-directory, --incognito) passed to the browser, and the sandbox ignores NSWorkspace.OpenConfiguration.arguments. BrowBro therefore uses the mechanism macOS provides: a script the user saves, via NSSavePanel, into ~/Library/Application Scripts/cloud.tiagomoraes.browbro, run with NSUserUnixTask. It is a few lines and only runs: /usr/bin/open -n -a <browser> --args <flag> <url>. Declining it leaves everything else working; those rows then open the browser's normal window.
+
+NO ACCOUNTS, NO PAID CONTENT, NO USER CONTENT
+
+No registration, login or account deletion — no accounts, no server. No user-generated content. Free, no in-app purchases.
+
+EXTERNAL SERVICES, TOOLS AND PLATFORMS
+
+None. No backend, analytics, third-party SDK or network requests of its own; only Apple frameworks (SwiftUI, AppKit, LaunchServices, NSWorkspace). The only external programs are the browsers already installed, and Chrome's local profile list (Local State), read only after the user grants that folder. URLs and profile names never leave the device.
+
+Sandbox: user-selected read-write (read the Chrome folder; write only to save the helper) and app-scoped bookmarks. No Full Disk Access, no temporary exceptions.
+
+REGIONS
+
+One English (U.S.) build, identical in every territory: no geolocation, no region-gated features, no regional pricing, no server.
+
+REGULATED INDUSTRY OR THIRD-PARTY MATERIAL
+
+Neither applies. Browser names and icons are read at runtime from the user's own Mac; no third-party artwork ships in the bundle. Source is ours, MIT-licensed: https://github.com/tiagomoraes/browbro
+
+No Sparkle or other updater (App Store updates only), no donation or payment links.
 ```
 
 ---
