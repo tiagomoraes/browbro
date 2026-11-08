@@ -45,6 +45,31 @@ enum DefaultBrowser {
         try await NSWorkspace.shared.setDefaultApplication(at: me, toOpenURLsWithScheme: "http")
     }
 
+    /// Shown when BrowBro still isn't the default after asking. macOS refuses
+    /// silently for builds it can't verify (ad-hoc / locally signed), and also
+    /// lands here if the user declined the confirmation prompt.
+    static let notDefaultMessage = "BrowBro still isn't the default. If macOS didn't ask you to confirm, it refused the request — common with locally built copies. You can choose BrowBro in System Settings → Desktop & Dock → Default web browser."
+
+    /// `setAsDefault`, then report the outcome: nil once BrowBro is the default,
+    /// otherwise a message for the UI.
+    static func setAsDefaultReportingFailure() async -> String? {
+        do {
+            try await setAsDefault()
+        } catch let error as CocoaError where error.code == .userCancelled {
+            return nil
+        } catch {
+            return "macOS refused to change the default browser (\(error.localizedDescription)). You can choose BrowBro in System Settings → Desktop & Dock → Default web browser."
+        }
+        return isBrowBro ? nil : notDefaultMessage
+    }
+
+    /// Desktop & Dock, where the Default web browser menu lives.
+    static func openSystemSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
     /// The reversible half of the takeover: hand the default back to whatever
     /// browser held it before BrowBro. The capture is kept so the status can
     /// still name it.
