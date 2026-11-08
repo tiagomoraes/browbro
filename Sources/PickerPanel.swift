@@ -27,7 +27,9 @@ final class PickerController {
     private var panel: PickerPanel?
     private var resignObserver: (any NSObjectProtocol)?
 
-    func present(for url: URL, source: SourceApp? = nil) {
+    /// `applyRules: false` always shows the picker — used when re-routing a
+    /// recent link from the menu, where the point is to choose again.
+    func present(for url: URL, source: SourceApp? = nil, applyRules: Bool = true) {
         dismiss(animated: false)
 
         let catalog = TargetCatalog.shared
@@ -36,6 +38,17 @@ final class PickerController {
         guard !targets.isEmpty else {
             pickerLog.info("no targets; skipping picker")
             return
+        }
+
+        // A matching Rule always wins: skip the picker and open the chosen target.
+        // If the saved target vanished, fall through so the user can still pick.
+        if applyRules, let rule = RuleStore.shared.match(url) {
+            if let target = catalog.all.first(where: { $0.id == rule.targetID }) {
+                pickerLog.info("rule match \(rule.pattern, privacy: .public) → \(target.name, privacy: .public)")
+                launch(target, url: url)
+                return
+            }
+            pickerLog.info("rule match \(rule.pattern, privacy: .public) but target missing; showing picker")
         }
 
         // Modifier mode: a plain click opens the chosen default directly; the

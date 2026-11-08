@@ -56,6 +56,7 @@ enum Preferences {
     static let defaultTargetKey = "defaultTargetID"
     static let privateWindowsEnabledKey = "privateWindowsEnabled"
     static let privateEnabledTargetsKey = "privateEnabledTargets"
+    static let rulesKey = "urlRules"
 
     /// Pre-highlight whatever you picked last time.
     static var rememberLast: Bool {

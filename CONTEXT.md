@@ -29,6 +29,11 @@ The key held to summon the Picker when plain clicks bypass it — it gates *whet
 Picker appears, never *how* a pick behaves.
 _Avoid_: hotkey, shortcut
 
+**Rule**:
+A user-defined host match that always opens a matching link in a chosen Launch Target,
+skipping the Picker. First enabled match in the user's list wins.
+_Avoid_: filter, redirect, mapping
+
 ## Relationships
 
 - The **Picker** lists **Launch Targets** in the user's saved order.
@@ -36,6 +41,7 @@ _Avoid_: hotkey, shortcut
   of either.
 - Only Browsers with a known private-window capability (and their Chrome Profiles) offer a
   **Private Window** variant; Safari offers none.
+- A matching **Rule** skips the **Picker** and opens the link in its Launch Target.
 
 ## Example dialogue
 

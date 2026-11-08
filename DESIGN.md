@@ -39,18 +39,19 @@ or which **Chrome profile** — opens it. Open-source, in the spirit of Velja.
 | App type | Menu-bar-only accessory (`LSUIElement`), resident, login item (`SMAppService`) so the picker is instant |
 | Project | Xcode project generated from `project.yml` via **xcodegen** |
 | URL reception | `CFBundleURLTypes` http/https + `kAEGetURL` Apple Event |
-| Persistence | `UserDefaults` (v1 prefs); JSON/SwiftData for rules in milestone 2 |
+| Persistence | `UserDefaults` (prefs + JSON-encoded Rules) |
 | Min OS | macOS 14 (Sonoma)+ |
 | Distribution | Dual channel: notarized DMG + Homebrew + Sparkle, and a sandboxed Mac App Store target (`BrowBroMAS`). See [docs/NOTARIZING.md](docs/NOTARIZING.md) and [docs/MAS.md](docs/MAS.md). |
 
-## Out of scope → milestone 2+
+## Out of scope → later
 
-Rules engine · "always use X for this site" · URL transforms (unshorten / strip tracking) ·
+URL transforms (unshorten / strip tracking) ·
 routing to native apps (Zoom/Slack deep links) ·
 other Chromium browsers' profiles · Arc / Firefox.
 
 _(Shipped: hold-a-key-to-pick — the picker can be gated behind a modifier, with a plain click
-opening a chosen default. See Settings → Behavior.)_
+opening a chosen default. See Settings → Behavior. Rules — "always use X for this site" —
+live in Settings → Rules and skip the picker on a host match.)_
 
 ## Recommended build order (de-risk first)
 
