@@ -9,7 +9,8 @@ struct PickerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            UrlHeaderView(url: model.url, source: model.source)
+            UrlHeaderView(url: model.url, source: model.source,
+                          copied: model.copied, onCopy: { model.copyURL() })
             BBDivider(inset: 6)
                 .padding(.vertical, 2)
             targetList
@@ -62,30 +63,39 @@ struct PickerView: View {
 struct UrlHeaderView: View {
     let url: URL
     let source: SourceApp?
+    var copied = false
+    var onCopy: (() -> Void)? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            urlLine
-                .lineLimit(1)
-                .truncationMode(.tail)
-            if let source {
-                HStack(spacing: 4) {
-                    if let icon = source.icon {
-                        Image(nsImage: icon)
-                            .resizable()
-                            .interpolation(.high)
-                            .frame(width: 14, height: 14)
+        HStack(alignment: .center, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                urlLine
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                if let source {
+                    HStack(spacing: 4) {
+                        if let icon = source.icon {
+                            Image(nsImage: icon)
+                                .resizable()
+                                .interpolation(.high)
+                                .frame(width: 14, height: 14)
+                        }
+                        Text("from \(source.name)")
+                            .font(BBFont.caption)
+                            .foregroundStyle(BB.textSecondary)
                     }
-                    Text("from \(source.name)")
-                        .font(BBFont.caption)
-                        .foregroundStyle(BB.textSecondary)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture { onCopy?() }
+            .help(copied ? "Copied" : "Copy \(url.absoluteString)")
+
+            CopyURLButton(copied: copied, action: { onCopy?() })
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .help(url.absoluteString)
     }
 
     private var urlLine: Text {

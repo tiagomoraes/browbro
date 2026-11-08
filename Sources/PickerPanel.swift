@@ -16,6 +16,14 @@ final class PickerPanel: NSPanel {
         if onKeyDown?(event) == true { return }
         super.keyDown(with: event)
     }
+
+    /// Command keys (⌘C) arrive here, not in `keyDown` — AppKit treats them as
+    /// menu equivalents. Consume them so they don't fall through to the
+    /// still-active source app (this panel is non-activating).
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if onKeyDown?(event) == true { return true }
+        return super.performKeyEquivalent(with: event)
+    }
 }
 
 /// Presents the picker at the cursor and routes the choice to the launcher.

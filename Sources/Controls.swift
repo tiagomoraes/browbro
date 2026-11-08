@@ -274,6 +274,45 @@ struct PrivateBadge: View {
     }
 }
 
+// MARK: - Copy URL (picker header)
+// Quiet icon button; flips to a checkmark for a beat after copying.
+
+struct CopyURLButton: View {
+    let copied: Bool
+    let action: () -> Void
+    @State private var hovered = false
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                .font(.system(size: 11, weight: .semibold))
+            Text(copied ? "Copied" : "Copy")
+                .font(BBFont.caption)
+                .fontWeight(.medium)
+        }
+        .foregroundStyle(copied ? BB.success : (hovered ? BB.textPrimary : BB.textSecondary))
+        .padding(.horizontal, 7)
+        .frame(height: 22)
+        .background(
+            hovered ? BB.fillHover : BB.fillQuiet,
+            in: RoundedRectangle(cornerRadius: BB.radiusSM, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: BB.radiusSM, style: .continuous)
+                .strokeBorder(BB.borderHairline, lineWidth: BB.hairline))
+        .contentShape(Rectangle())
+        .onTapGesture(perform: action)
+        .help(copied ? "Copied" : "Copy URL")
+        .accessibilityLabel(copied ? "Copied" : "Copy URL")
+        .accessibilityAddTraits(.isButton)
+        .onHover { inside in
+            hovered = inside
+            (inside ? NSCursor.pointingHand : NSCursor.arrow).set()
+        }
+        .animation(BBMotion.easeOut(BBMotion.instant), value: copied)
+        .animation(BBMotion.easeOut(BBMotion.instant), value: hovered)
+    }
+}
+
 // MARK: - Hairline divider
 
 struct BBDivider: View {
