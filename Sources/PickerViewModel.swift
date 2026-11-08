@@ -16,6 +16,7 @@ struct SourceApp {
 ///   1–9     open that target immediately (the badge is its position)
 ///   A–Z     jump to the first target starting with that letter
 ///   Enter   open the highlighted target
+///   ⌘C     copy the URL
 ///   Esc     cancel — the link does not open
 @MainActor
 @Observable
@@ -24,6 +25,8 @@ final class PickerViewModel {
     let source: SourceApp?
     let targets: [LaunchTarget]
     private(set) var selectedIndex: Int
+    private(set) var copied = false
+    private var copiedGeneration = 0
 
     var onCommit: ((LaunchTarget) -> Void)?
     var onCancel: (() -> Void)?
@@ -52,6 +55,18 @@ final class PickerViewModel {
         onCommit?(targets[index])
     }
 
+    func copyURL() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(url.absoluteString, forType: .string)
+        copied = true
+        copiedGeneration += 1
+        let generation = copiedGeneration
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            if copiedGeneration == generation { copied = false }
+        }
+    }
+
     /// Handle a key event forwarded from the panel. Returns true if consumed.
     func handleKeyDown(_ event: NSEvent) -> Bool {
         switch event.keyCode {
@@ -62,8 +77,15 @@ final class PickerViewModel {
         default:
             break
         }
-        guard !event.modifierFlags.contains(.command),
-              let chars = event.charactersIgnoringModifiers?.lowercased(), chars.count == 1
+        let chars = event.charactersIgnoringModifiers?.lowercased()
+        let mods = event.modifierFlags.intersection([.command, .shift, .option, .control])
+        // keyCode 8 = "C" on a US keyboard; characters cover other layouts.
+        if mods == .command, chars == "c" || event.keyCode == 8 {
+            copyURL()
+            return true
+        }
+        guard mods.isEmpty,
+              let chars = chars, chars.count == 1
         else { return false }
         if let n = Int(chars), (1...9).contains(n) {   // digit = open that target
             commit(at: n - 1)
