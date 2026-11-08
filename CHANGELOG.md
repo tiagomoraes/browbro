@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Rules.** Settings → Rules lets you always open matching links in a chosen
+  browser or Chrome profile — e.g. `meet.google.com` in Work — skipping the
+  picker. Host match (subdomains count; `*.` and `www.` are ignored); an
+  optional `:port` and path prefix are supported. First enabled rule wins —
+  drag to reorder. Re-opening a recent link from the menu still shows the picker.
 - **Mac App Store channel.** A second target, `BrowBroMAS`, builds the sandboxed,
   Sparkle-free binary the store requires (guideline 2.4.5). Chrome profile access
   persists via a security-scoped bookmark; profile / private-window launches go

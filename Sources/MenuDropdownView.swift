@@ -98,10 +98,11 @@ struct MenuDropdownView: View {
         isDefault = DefaultBrowser.isBrowBro
     }
 
-    /// Clicking a recent link re-routes it: the picker pops right back up.
+    /// Clicking a recent link re-routes it: the picker pops right back up,
+    /// even if a Rule matches.
     private func reopen(_ url: URL) {
         closeMenuWindow()
-        PickerController.shared.present(for: url)
+        PickerController.shared.present(for: url, applyRules: false)
     }
 
     /// The MenuBarExtra window doesn't auto-close on custom actions.

@@ -3,9 +3,11 @@ import AppKit
 import UniformTypeIdentifiers
 
 /// BrowBro Settings: default-browser status with restore, Chrome-profile
-/// access, the picker catalog (reorder + show/hide), and behavior toggles.
+/// access, the picker catalog (reorder + show/hide), URL rules, and behavior
+/// toggles.
 struct SettingsView: View {
     @State private var catalog = TargetCatalog.shared
+    @State private var rules = RuleStore.shared
     #if SPARKLE
     @State private var updater = UpdaterController.shared
     #endif
@@ -22,6 +24,8 @@ struct SettingsView: View {
     @State private var launchAtLogin = false
 
     @State private var draggingID: String?
+    @State private var draggingRuleID: UUID?
+    @FocusState private var focusedRuleID: UUID?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -34,6 +38,7 @@ struct SettingsView: View {
                         chromeGroup
                     }
                     catalogGroup
+                    rulesGroup
                     privateWindowsGroup
                     behaviorGroup
                     #if SPARKLE
@@ -186,6 +191,62 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    // MARK: Rules
+
+    /// Host-based routing: a matching link skips the picker and opens in the
+    /// chosen target. First enabled match wins; new rules insert at the top.
+    private var rulesGroup: some View {
+        SettingsGroup(title: "Rules", hint: rules.rules.isEmpty ? nil
+                : (rules.rules.count > 1 ? "first match wins · drag to reorder" : "first match wins")) {
+            if rules.rules.isEmpty {
+                SettingsRow(
+                    label: "No rules yet",
+                    description: "Always open matching links in a chosen browser — e.g. meet.google.com in Work.")
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(rules.rules.enumerated()), id: \.element.id) { index, rule in
+                        RuleRow(
+                            rule: rule,
+                            catalog: catalog,
+                            isLast: index == rules.rules.count - 1,
+                            focusedID: $focusedRuleID,
+                            onPattern: { rules.setPattern(rule.id, $0) },
+                            onTarget: { rules.setTarget(rule.id, $0) },
+                            onToggle: { rules.setEnabled(rule.id, $0) },
+                            onDelete: { rules.remove(id: rule.id) },
+                            onDragStart: {
+                                draggingRuleID = rule.id
+                                return NSItemProvider(object: rule.id.uuidString as NSString)
+                            })
+                        .opacity(draggingRuleID == rule.id ? 0.4 : 1)
+                        .onDrop(of: [.plainText],
+                                delegate: RuleDropDelegate(ruleID: rule.id,
+                                                           draggingID: $draggingRuleID,
+                                                           store: rules))
+                    }
+                }
+            }
+            BBDivider().padding(.leading, 12)
+            Button {
+                let targetID = catalog.visible.first?.id ?? catalog.all.first?.id ?? ""
+                let rule = URLRule(pattern: "", targetID: targetID)
+                rules.add(rule)
+                focusedRuleID = rule.id
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text("Add a rule")
+                }
+            }
+            .buttonStyle(BBButtonStyle(variant: .ghost, size: .sm))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .disabled(catalog.all.isEmpty)
+        }
+        .animation(BBMotion.easeOut(BBMotion.panel), value: rules.rules.count)
     }
 
     // MARK: Private windows
@@ -512,6 +573,81 @@ private struct SettingsRow<Leading: View, Trailing: View>: View {
     }
 }
 
+// MARK: - Rule row (pattern + target + enable + delete)
+
+private struct RuleRow: View {
+    let rule: URLRule
+    let catalog: TargetCatalog
+    let isLast: Bool
+    @FocusState.Binding var focusedID: UUID?
+    let onPattern: (String) -> Void
+    let onTarget: (String) -> Void
+    let onToggle: (Bool) -> Void
+    let onDelete: () -> Void
+    let onDragStart: () -> NSItemProvider
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                // Drag from the grip only, so the text field keeps normal selection.
+                GripDots()
+                    .contentShape(Rectangle())
+                    .cursor(.openHand)
+                    .onDrag(onDragStart)
+                    .help("Drag to reorder — first match wins")
+
+                TextField("meet.google.com", text: Binding(
+                    get: { rule.pattern },
+                    set: onPattern))
+                    .font(BBFont.url)
+                    .textFieldStyle(.plain)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(BB.fillQuiet, in: RoundedRectangle(cornerRadius: BB.radiusSM, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: BB.radiusSM, style: .continuous)
+                            .strokeBorder(BB.borderHairline, lineWidth: BB.hairline))
+                    .help("Host to match — subdomains and www. count. Optional :port or path, e.g. localhost:3000 or github.com/org.")
+                    .frame(maxWidth: .infinity)
+                    .focused($focusedID, equals: rule.id)
+
+                Picker("", selection: Binding(get: { rule.targetID }, set: onTarget)) {
+                    ForEach(catalog.all) { target in
+                        Text(target.name).tag(target.id)
+                    }
+                    if catalog.all.first(where: { $0.id == rule.targetID }) == nil,
+                       !rule.targetID.isEmpty {
+                        Text("Missing target").tag(rule.targetID)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .tint(BB.accent)
+                .fixedSize()
+
+                BBSwitch(isOn: Binding(get: { rule.enabled }, set: onToggle), size: .sm)
+
+                Button(action: onDelete) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(BB.iconSecondary)
+                        .frame(width: 18, height: 18)
+                }
+                .buttonStyle(.plain)
+                .cursor(.pointingHand)
+                .help("Remove rule")
+                .accessibilityLabel("Remove rule")
+            }
+            .padding(EdgeInsets(top: 8, leading: 6, bottom: 8, trailing: 10))
+            .opacity(rule.enabled ? 1 : 0.55)
+
+            if !isLast {
+                BBDivider().padding(.leading, 12)
+            }
+        }
+    }
+}
+
 // MARK: - Catalog row (drag to reorder, switch to show/hide)
 
 private struct CatalogRow: View {
@@ -760,6 +896,29 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         window = nil
+    }
+}
+
+/// Live reorder while dragging over rule rows.
+private struct RuleDropDelegate: DropDelegate {
+    let ruleID: UUID
+    @Binding var draggingID: UUID?
+    let store: RuleStore
+
+    func dropEntered(info: DropInfo) {
+        guard let draggingID, draggingID != ruleID else { return }
+        MainActor.assumeIsolated {
+            store.move(draggingID, over: ruleID)
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggingID = nil
+        return true
     }
 }
 
