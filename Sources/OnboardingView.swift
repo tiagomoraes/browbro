@@ -9,6 +9,7 @@ struct OnboardingView: View {
 
     @State private var isDefault = DefaultBrowser.isBrowBro
     @State private var working = false
+    @State private var defaultError: String?
 
     /// The browser being replaced (captured prior default, or the live one).
     private var currentDefault: (name: String, appURL: URL)? {
@@ -85,12 +86,22 @@ struct OnboardingView: View {
                         Task {
                             working = true
                             defer { working = false }
-                            try? await DefaultBrowser.setAsDefault()
+                            defaultError = await DefaultBrowser.setAsDefaultReportingFailure()
                             isDefault = DefaultBrowser.isBrowBro
                         }
                     }
                     .buttonStyle(BBButtonStyle(variant: .primary, size: .lg, fullWidth: true))
                     .disabled(working)
+
+                    if let defaultError {
+                        Text(defaultError)
+                            .font(BBFont.rowSub)
+                            .foregroundStyle(BB.warning)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button("Open System Settings…") { DefaultBrowser.openSystemSettings() }
+                            .buttonStyle(BBButtonStyle(variant: .ghost, size: .md, fullWidth: true))
+                    }
 
                     Button("Maybe later") { onClose() }
                         .buttonStyle(BBButtonStyle(variant: .ghost, size: .md, fullWidth: true))

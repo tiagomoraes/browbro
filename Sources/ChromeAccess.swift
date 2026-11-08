@@ -37,6 +37,13 @@ enum ChromeAccess {
                 "Library/Application Support/Google/Chrome", isDirectory: true)
     }
 
+    /// `chromeSupportFolder` for display, with the real home shortened to `~`.
+    static var displayPath: String {
+        let path = chromeSupportFolder.path
+        let home = realHome.path
+        return path.hasPrefix(home + "/") ? "~" + path.dropFirst(home.count) : path
+    }
+
     /// True only if we can actually read Local State (i.e. access is granted).
     static func canReadLocalState() -> Bool {
         guard isChromeInstalled else { return false }

@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **"Set as default" explains a refusal.** If BrowBro still isn't the default
+  afterwards (macOS can refuse locally built copies without asking), Settings
+  and onboarding say so and offer System Settings → Desktop & Dock, instead of
+  silently doing nothing.
+- **Chrome folder shown in Settings.** The Chrome profiles section shows the
+  folder BrowBro reads profiles from.
 - **Mac App Store channel.** A second target, `BrowBroMAS`, builds the sandboxed,
   Sparkle-free binary the store requires (guideline 2.4.5). Chrome profile access
   persists via a security-scoped bookmark; profile / private-window launches go

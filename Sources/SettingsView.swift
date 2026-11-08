@@ -12,6 +12,7 @@ struct SettingsView: View {
     @State private var isDefault = DefaultBrowser.isBrowBro
     @State private var chromeAccess = false
     @State private var working = false
+    @State private var defaultError: String?
 
     @AppStorage(Preferences.rememberLastKey) private var rememberLast = false
     @AppStorage(Preferences.skipSingleKey) private var skipSingle = false
@@ -71,6 +72,7 @@ struct SettingsView: View {
     private func refresh() {
         catalog.refresh()
         isDefault = DefaultBrowser.isBrowBro
+        if isDefault { defaultError = nil }
         chromeAccess = ChromeAccess.canReadLocalState()
         launchAtLogin = LoginItem.isEnabled
         // Keep the "open plain clicks in" choice pointing at a real target:
@@ -110,7 +112,7 @@ struct SettingsView: View {
                             Task {
                                 working = true
                                 defer { working = false }
-                                try? await DefaultBrowser.setAsDefault()
+                                defaultError = await DefaultBrowser.setAsDefaultReportingFailure()
                                 isDefault = DefaultBrowser.isBrowBro
                             }
                         }
@@ -118,6 +120,18 @@ struct SettingsView: View {
                         .disabled(working)
                     }
                 })
+            if let defaultError, !isDefault {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(defaultError, systemImage: "exclamationmark.triangle.fill")
+                        .font(BBFont.rowSub)
+                        .foregroundStyle(BB.warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("Open System Settings…") { DefaultBrowser.openSystemSettings() }
+                        .buttonStyle(BBButtonStyle(variant: .ghost, size: .sm))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(EdgeInsets(top: 0, leading: 12, bottom: 10, trailing: 12))
+            }
         }
     }
 
@@ -144,6 +158,21 @@ struct SettingsView: View {
                             .buttonStyle(BBButtonStyle(variant: .primary, size: .sm))
                     }
                 })
+            // The folder BrowBro reads profiles from (or expects to, before access).
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(chromeAccess ? "Reading" : "Looks in")
+                    .font(BBFont.caption)
+                    .foregroundStyle(BB.textTertiary)
+                Text(ChromeAccess.displayPath)
+                    .font(.system(size: 11, weight: .regular, design: .monospaced))
+                    .foregroundStyle(BB.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+                    .help(ChromeAccess.chromeSupportFolder.path)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(EdgeInsets(top: 0, leading: 12, bottom: 10, trailing: 12))
         }
     }
 
