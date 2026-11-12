@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Brave and Brave Origin profiles.** Their profiles are now Launch Targets alongside
+  Chrome's, each browser with its own access grant in Settings. Chrome's existing
+  target ids and access grant carry over unchanged.
 - **Mac App Store channel.** A second target, `BrowBroMAS`, builds the sandboxed,
   Sparkle-free binary the store requires (guideline 2.4.5). Chrome profile access
   persists via a security-scoped bookmark; profile / private-window launches go

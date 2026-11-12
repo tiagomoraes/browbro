@@ -13,14 +13,13 @@ enum PrivateWindow {
         let dialect: String
     }
 
-    /// Known private-capable browsers by bundle id.
+    /// Known private-capable browsers by bundle id, beyond the profile-aware
+    /// Chromium browsers (those declare their own capability — see ChromiumBrowser).
     private static let table: [String: Capability] = [
         // Chromium family
-        "com.google.Chrome": .init(flag: "--incognito", dialect: "Incognito"),
         "com.google.Chrome.beta": .init(flag: "--incognito", dialect: "Incognito"),
         "com.google.Chrome.canary": .init(flag: "--incognito", dialect: "Incognito"),
         "org.chromium.Chromium": .init(flag: "--incognito", dialect: "Incognito"),
-        "com.brave.Browser": .init(flag: "--incognito", dialect: "Private"),
         "com.vivaldi.Vivaldi": .init(flag: "--incognito", dialect: "Private"),
         "com.microsoft.edgemac": .init(flag: "--inprivate", dialect: "InPrivate"),
         "com.operasoftware.Opera": .init(flag: "--private", dialect: "Private"),
@@ -31,6 +30,9 @@ enum PrivateWindow {
     ]
 
     static func capability(for bundleID: String) -> Capability? {
-        table[bundleID]
+        if let browser = ChromiumBrowsers.browser(forBundleID: bundleID) {
+            return browser.privateWindow
+        }
+        return table[bundleID]
     }
 }

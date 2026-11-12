@@ -3,7 +3,7 @@ import os
 
 private let launchLog = Logger(subsystem: "cloud.tiagomoraes.browbro", category: "launch")
 
-/// Opens URLs in browsers — including a specific Chrome profile.
+/// Opens URLs in browsers — including a specific Chromium browser profile.
 enum BrowserLauncher {
 
     /// Open a URL in an arbitrary browser app bundle.
@@ -12,11 +12,6 @@ enum BrowserLauncher {
         NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config) { _, error in
             completion?(error)
         }
-    }
-
-    /// The Google Chrome app bundle, if installed.
-    static func chromeAppURL() -> URL? {
-        NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.google.Chrome")
     }
 
     /// Open a URL by invoking the browser with launch flags (`--profile-directory`,
@@ -39,12 +34,13 @@ enum BrowserLauncher {
         #endif
     }
 
-    /// Launch a resolved target (browser, Chrome profile, or a Private Window
+    /// Launch a resolved target (browser, Chromium profile, or a Private Window
     /// variant of either) with a URL.
     static func launch(_ target: LaunchTarget, url: URL) {
         var flags: [String] = []
-        if case .chromeProfile(let directory) = target.kind {
-            flags.append("--profile-directory=\(directory)")
+        if case .chromiumProfile(let directory) = target.kind,
+           let browser = ChromiumBrowsers.browser(forBundleID: target.bundleID) {
+            flags += browser.launchFlags(profileDirectory: directory)
         }
         if let privateFlag = target.privateFlag {
             flags.append(privateFlag)

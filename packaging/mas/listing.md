@@ -86,9 +86,11 @@ HOW TO TEST
 3. Click a link in Notes or Mail, or run:
    open -a BrowBro "https://example.com"
    A picker should appear at the cursor. Esc cancels; Enter / click opens the highlighted browser.
-4. Chrome profiles (optional): Settings → Chrome profiles → Grant access… and select
+4. Chrome / Brave profiles (optional): Settings → Chrome profiles (or Brave profiles, Brave Origin profiles) → Grant access… and select that browser's folder (the one that contains “Local State”):
    ~/Library/Application Support/Google/Chrome
-   (the folder that contains “Local State”). Profiles then appear in the picker.
+   ~/Library/Application Support/BraveSoftware/Brave-Browser
+   ~/Library/Application Support/BraveSoftware/Brave-Origin
+   Profiles then appear in the picker.
 5. Private windows: Settings → Private windows → enable, then opt in a browser. The extra picker rows launch that browser’s incognito/private flag.
 
 The app is an LSUIElement menu-bar accessory — no Dock icon. If it looks like nothing launched, look in the menu bar.
@@ -96,7 +98,7 @@ The app is an LSUIElement menu-bar accessory — no Dock icon. If it looks like 
 It does not include Sparkle or any custom updater. Updates are App Store only.
 It does not include donation / tip links.
 
-Sandbox: user-selected read-only access to the Chrome folder the user picks, persisted as an app-scoped bookmark. No Full Disk Access, no temporary exception entitlements.
+Sandbox: user-selected read-only access to each browser data folder the user picks (Chrome, Brave, Brave Origin), persisted as app-scoped bookmarks. No Full Disk Access, no temporary exception entitlements.
 ```
 
 ---

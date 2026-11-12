@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
-/// BrowBro Settings: default-browser status with restore, Chrome-profile
+/// BrowBro Settings: default-browser status with restore, Chromium-profile
 /// access, the picker catalog (reorder + show/hide), and behavior toggles.
 struct SettingsView: View {
     @State private var catalog = TargetCatalog.shared
@@ -10,7 +10,8 @@ struct SettingsView: View {
     @State private var updater = UpdaterController.shared
     #endif
     @State private var isDefault = DefaultBrowser.isBrowBro
-    @State private var chromeAccess = false
+    /// Keys of the Chromium browsers whose profile list is readable.
+    @State private var profileAccess: Set<String> = []
     @State private var working = false
 
     @AppStorage(Preferences.rememberLastKey) private var rememberLast = false
@@ -30,8 +31,8 @@ struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: BB.padPanel) {
                     defaultBrowserGroup
-                    if ChromeAccess.isChromeInstalled {
-                        chromeGroup
+                    ForEach(ChromiumBrowsers.installed, id: \.key) { browser in
+                        profilesGroup(for: browser)
                     }
                     catalogGroup
                     privateWindowsGroup
@@ -71,7 +72,9 @@ struct SettingsView: View {
     private func refresh() {
         catalog.refresh()
         isDefault = DefaultBrowser.isBrowBro
-        chromeAccess = ChromeAccess.canReadLocalState()
+        profileAccess = Set(ChromiumBrowsers.all
+            .filter { ChromiumAccess.canReadLocalState(for: $0) }
+            .map(\.key))
         launchAtLogin = LoginItem.isEnabled
         // Keep the "open plain clicks in" choice pointing at a real target:
         // seed it on first run, and heal it if the saved browser vanished.
@@ -121,34 +124,37 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: Chrome profiles
+    // MARK: Chromium browser profiles
 
-    private var chromeGroup: some View {
-        SettingsGroup(title: "Chrome profiles") {
+    /// One group per installed Chromium browser ("Chrome profiles", "Brave Origin profiles").
+    private func profilesGroup(for browser: any ChromiumBrowser) -> some View {
+        let granted = profileAccess.contains(browser.key)
+        let name = browser.displayName
+        return SettingsGroup(title: "\(name) profiles") {
             SettingsRow(
                 leading: {
-                    Image(systemName: chromeAccess ? "checkmark.shield" : "shield")
+                    Image(systemName: granted ? "checkmark.shield" : "shield")
                         .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(chromeAccess ? BB.success : BB.iconSecondary)
+                        .foregroundStyle(granted ? BB.success : BB.iconSecondary)
                 },
-                label: chromeAccess ? "Access granted" : "Grant access to Chrome profiles",
-                description: chromeAccess
-                    ? "BrowBro reads your Chrome profiles to route links per profile."
-                    : "BrowBro needs to read Chrome's data folder to list your profiles.",
+                label: granted ? "Access granted" : "Grant access to \(name) profiles",
+                description: granted
+                    ? "BrowBro reads your \(name) profiles to route links per profile."
+                    : "BrowBro needs to read \(name)'s data folder to list your profiles.",
                 trailing: {
-                    if chromeAccess {
-                        Button("Re-grant…") { grantChrome() }
+                    if granted {
+                        Button("Re-grant…") { grantAccess(to: browser) }
                             .buttonStyle(BBButtonStyle(variant: .ghost, size: .sm))
                     } else {
-                        Button("Grant access…") { grantChrome() }
+                        Button("Grant access…") { grantAccess(to: browser) }
                             .buttonStyle(BBButtonStyle(variant: .primary, size: .sm))
                     }
                 })
         }
     }
 
-    private func grantChrome() {
-        _ = ChromeAccess.requestAccess()
+    private func grantAccess(to browser: any ChromiumBrowser) {
+        _ = ChromiumAccess.requestAccess(for: browser)
         refresh()
     }
 
@@ -552,7 +558,7 @@ private struct CatalogRow: View {
 
     @ViewBuilder private var leading: some View {
         Group {
-            if case .chromeProfile = target.kind {
+            if case .chromiumProfile = target.kind {
                 ProfileSwatch(name: target.name, colorARGB: target.colorARGB, size: 22)
             } else {
                 AppIconChip(appURL: target.appURL, size: 22)
@@ -568,13 +574,14 @@ private struct CatalogRow: View {
 
     private var subtitle: String {
         if target.isPrivate {
-            if case .chromeProfile = target.kind {
+            if case .chromiumProfile = target.kind {
                 return target.subtitle.map { "Private window · \($0)" } ?? "Private window"
             }
             return "Private window"
         }
-        if case .chromeProfile = target.kind {
-            return target.subtitle.map { "Chrome · \($0)" } ?? "Chrome profile"
+        if case .chromiumProfile = target.kind {
+            let browser = ChromiumBrowsers.browser(forBundleID: target.bundleID)?.displayName ?? "Browser"
+            return target.subtitle.map { "\(browser) · \($0)" } ?? "\(browser) profile"
         }
         return "Web browser"
     }
@@ -609,7 +616,7 @@ private struct PrivateOptInRow: View {
     }
 
     @ViewBuilder private var leading: some View {
-        if case .chromeProfile = base.kind {
+        if case .chromiumProfile = base.kind {
             ProfileSwatch(name: base.name, colorARGB: base.colorARGB, size: 22)
         } else {
             AppIconChip(appURL: base.appURL, size: 22)

@@ -33,10 +33,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Re-establish sandbox access to Chrome's profile folder from the
-        // persisted security-scoped bookmark (no-op until the user has granted
-        // it, and no-op outside the sandbox where TCC + the real-home path work).
-        ChromeAccess.restorePersistedAccess()
+        // Re-establish sandbox access to each Chromium browser's profile folder
+        // from its persisted security-scoped bookmark (no-op until the user has
+        // granted it, and no-op outside the sandbox where TCC + the real-home path work).
+        ChromiumAccess.restorePersistedAccess()
 
         #if SPARKLE
         // Start Sparkle so scheduled update checks run in the background (the
