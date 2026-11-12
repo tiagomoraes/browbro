@@ -150,7 +150,7 @@ struct TargetRowView: View {
 
     @ViewBuilder private var leading: some View {
         Group {
-            if case .chromeProfile = target.kind {
+            if case .chromiumProfile = target.kind {
                 ProfileSwatch(name: target.name, colorARGB: target.colorARGB)
             } else {
                 AppIconChip(appURL: target.appURL)

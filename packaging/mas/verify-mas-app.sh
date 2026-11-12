@@ -27,7 +27,7 @@ grep -q SUFeedURL "$APP/Contents/Info.plist" 2>/dev/null &&
   fail "SUFeedURL is in Info.plist — Sparkle keys must not ship on MAS."
 
 # Guideline 2.4.5(i). Also the thing that makes the NSOpenPanel + bookmark path
-# in ChromeAccess.swift necessary — without the entitlement we'd be testing a
+# in ChromiumAccess.swift necessary — without the entitlement we'd be testing a
 # code path the store build never takes.
 codesign -d --entitlements :- "$APP" 2>/dev/null | grep -q "com.apple.security.app-sandbox" ||
   fail "App Sandbox entitlement missing from $APP"

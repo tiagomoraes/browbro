@@ -1,6 +1,6 @@
 import AppKit
 
-/// Discovers the set of launch targets: installed browsers + Chrome profiles.
+/// Discovers the set of launch targets: installed browsers + Chromium browser profiles.
 enum TargetDiscovery {
     private static let probe = URL(string: "https://example.com")!
 
@@ -21,15 +21,18 @@ enum TargetDiscovery {
         return result.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    /// Chrome profiles as targets, when Chrome is installed and its data is readable.
-    /// (Reading Local State is gated by macOS TCC; returns [] until access is granted.)
+    /// Profiles of every installed Chromium browser whose data is readable.
+    /// (Reading Local State is gated by macOS TCC; a browser contributes []
+    /// until access is granted.)
     @MainActor
-    static func chromeProfiles() -> [LaunchTarget] {
-        guard let chrome = BrowserLauncher.chromeAppURL() else { return [] }
-        return ChromeProfiles.load().map { p in
-            LaunchTarget(id: "chrome:\(p.directory)", name: p.name, subtitle: p.email,
-                         appURL: chrome, bundleID: "com.google.Chrome",
-                         kind: .chromeProfile(directory: p.directory), colorARGB: p.colorARGB)
+    static func chromiumProfiles() -> [LaunchTarget] {
+        ChromiumBrowsers.all.flatMap { browser -> [LaunchTarget] in
+            guard let appURL = browser.appURL else { return [] }
+            return ChromiumProfiles.load(for: browser).map { p in
+                LaunchTarget(id: "\(browser.key):\(p.directory)", name: p.name, subtitle: p.email,
+                             appURL: appURL, bundleID: browser.bundleID,
+                             kind: .chromiumProfile(directory: p.directory), colorARGB: p.colorARGB)
+            }
         }
     }
 
@@ -56,7 +59,7 @@ enum TargetDiscovery {
 
     @MainActor
     static func all() -> [LaunchTarget] {
-        let bases = browsers() + chromeProfiles()
+        let bases = browsers() + chromiumProfiles()
         return bases + privateVariants(of: bases)
     }
 }
