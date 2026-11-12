@@ -1,7 +1,7 @@
 # BrowBro
 
 A macOS menu-bar app that intercepts clicked links and pops a keyboard-first picker at the
-cursor, so every link opens in the right browser or Chrome profile.
+cursor, so every link opens in the right browser or Chrome / Brave profile.
 
 ## Language
 
@@ -12,8 +12,8 @@ _Avoid_: browser option, entry, item
 **Browser**:
 An installed app registered to handle http(s) links.
 
-**Chrome Profile**:
-A specific Chrome user profile, pickable as its own Launch Target.
+**Chrome Profile** / **Brave Profile**:
+A specific Chrome, Brave, or Brave Origin user profile, pickable as its own Launch Target.
 _Avoid_: account, persona
 
 **Private Window**:
@@ -32,9 +32,9 @@ _Avoid_: hotkey, shortcut
 ## Relationships
 
 - The **Picker** lists **Launch Targets** in the user's saved order.
-- A **Launch Target** is a **Browser**, a **Chrome Profile**, or a **Private Window** variant
+- A **Launch Target** is a **Browser**, a **Chrome Profile**, a **Brave Profile**, or a **Private Window** variant
   of either.
-- Only Browsers with a known private-window capability (and their Chrome Profiles) offer a
+- Only Browsers with a known private-window capability (and their Chrome / Brave Profiles) offer a
   **Private Window** variant; Safari offers none.
 
 ## Example dialogue

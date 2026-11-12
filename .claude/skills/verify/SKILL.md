@@ -58,6 +58,7 @@ open -a BrowBro "https://example.com/launch-test"
 
 ## Gotchas
 
-- Target ids: `app:<bundleID>`, `chrome:<profile dir>`, `private:<base-id>`.
+- Target ids: `app:<bundleID>`, `<browser key>:<profile dir>` (`chrome:`, `brave:`,
+  `brave-origin:` — see `ChromiumBrowser.key`), `private:<base-id>`.
 - `defaults write` while BrowBro runs is fine — the catalog refreshes on every link.
 - Debug build replaces the installed app; that's the sanctioned dev loop.

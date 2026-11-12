@@ -34,10 +34,13 @@ into Info.plist, or if the App Sandbox entitlement is missing.
 Prove the three sandbox-sensitive paths before submitting:
 
 1. **Default browser** — Settings → Set as default, click a link in Notes.
-2. **Chrome profiles** — Settings → Grant access… and pick
-   `~/Library/Application Support/Google/Chrome`. Quit and relaunch: the grant
-   must survive (bookmark). Profiles should appear in the picker.
-3. **Profile / private window** — pick a Chrome profile and a Private Window
+2. **Chrome / Brave profiles** — Chrome, Brave, and Brave Origin each have their
+   own Settings group. Grant access… and pick the browser's folder:
+   `~/Library/Application Support/Google/Chrome`,
+   `…/BraveSoftware/Brave-Browser`, or `…/BraveSoftware/Brave-Origin`. Quit and
+   relaunch: every grant must survive (one bookmark per browser). Profiles
+   should appear in the picker.
+3. **Profile / private window** — pick a Chrome or Brave profile and a Private Window
    variant. The flags have to arrive; a sandbox-blocked `Process()` used to fail
    silently here.
 
